@@ -2,18 +2,33 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>어디살까 - 영역 관리 시스템</title>
+    <title>어디살까 - 편집 시스템</title>
     <style>
-        body { font-family: 'Apple SD Gothic Neo', sans-serif; margin: 20px; background-color: #f8f9fa; }
-        #map { width: 100%; height: 600px; border-radius: 12px; border: 1px solid #ced4da; }
+        /* 기본 레이아웃 */
+        body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; margin: 20px; background-color: #f0f2f5; color: #333; }
         
-        /* 커서 및 인터랙션 스타일 */
+        /* [추가] 상단 제목 헤더 스타일 */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 20px;
+            padding: 10px 5px;
+            border-bottom: 2px solid #3498db;
+        }
+        .admin-header h1 { margin: 0; font-size: 28px; font-weight: 900; color: #2c3e50; }
+        .admin-header h1 span { color: #3498db; }
+        .admin-header .status { font-size: 14px; color: #7f8c8d; font-weight: bold; }
+
+        /* 기존 스타일 유지 */
+        #map { width: 100%; height: 600px; border-radius: 12px; border: 1px solid #ced4da; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .draw-mode #map, .draw-mode #map * { cursor: crosshair !important; }
         .poly-hover { cursor: pointer !important; }
 
         .controls { margin-bottom: 15px; display: flex; gap: 10px; align-items: center; }
-        .btn { padding: 12px 20px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; }
-        .btn-start { background: #3498db; color: white; }
+        .btn { padding: 12px 20px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        .btn:hover { opacity: 0.8; }
+        .btn-start { background: #3498db; color: white; box-shadow: 0 2px 5px rgba(52,152,219,0.3); }
         
         #sidebar { 
             position: fixed; top: 0; right: -400px; width: 340px; height: 100%; 
@@ -23,9 +38,8 @@
         #sidebar.open { right: 0; }
         .close-btn { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
         
-        input, textarea { width: 100%; margin-bottom: 15px; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        input, textarea { width: 100%; margin-bottom: 15px; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         
-        /* 버튼 컨테이너 및 버튼 스타일 */
         #button-group { display: flex; gap: 10px; margin-top: auto; }
         .btn-full { flex: 1; padding: 15px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; font-size: 15px; }
         .save-color { background: #2ecc71; color: white; }
@@ -35,9 +49,20 @@
 </head>
 <body>
 
+<div class="admin-header">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <img src="logo.png" alt="어디살까 로고" style="height: 70px; width: auto;">
+        <h1 style="margin: 0; font-size: 28px; font-weight: 900; color: #2c3e50;">
+            어디살까
+        </h1>
+    </div>
+    <div class="status" style="font-size: 14px; color: #7f8c8d; font-weight: bold;">
+        Editor Mode: odilive
+    </div>
+</div>
+
 <div class="controls">
-    <button id="btnStart" class="btn btn-start" onclick="toggleDrawing(true)">📍 새 영역 그리기 시작</button>
-    <span id="statusMsg" style="color:#666;">영역을 완성하면 '저장', 기존 영역은 '수정/삭제'가 뜹니다.</span>
+    <button id="btnStart" class="btn btn-start" onclick="toggleDrawing(true)">📍 새 동네 영역 그리기</button>
 </div>
 
 <div id="map"></div>
@@ -45,8 +70,8 @@
 <div id="sidebar">
     <button class="close-btn" onclick="closeSidebar()">&times;</button>
     <h3>🏡 동네 정보 설정</h3>
-    <input type="text" id="t_name" placeholder="동네 이름">
-    <textarea id="t_desc" rows="10" placeholder="상세 설명"></textarea>
+    <input type="text" id="t_name" placeholder="동네 이름 (예: 성수동 카페거리)">
+    <textarea id="t_desc" rows="10" placeholder="이 동네의 특징이나 메모를 적어보세요."></textarea>
     
     <div id="button-group"></div>
 </div>
@@ -54,6 +79,7 @@
 <script type="text/javascript" src="http://dapi.kakao.com/v2/maps/sdk.js?appkey=4221957d3296d5b1b0a48b671070d6cc"></script>
 
 <script>
+    // 기존 로직 그대로 유지
     var mapContainer = document.getElementById('map');
     var mapOption = { center: new kakao.maps.LatLng(37.566826, 126.9786567), level: 3 };
     var map = new kakao.maps.Map(mapContainer, mapOption);
@@ -121,13 +147,12 @@
         }
     });
 
-    // 폴리곤 완성 로직
     function finishDrawing() {
         var polygon = new kakao.maps.Polygon({
             map: map, path: drawingPoints, strokeWeight: 3, strokeColor: '#e74c3c', fillColor: '#e74c3c', fillOpacity: 0.3, zIndex: 10, clickable: true
         });
 
-        polygon.myData = { name: "", desc: "", saved: false }; // saved 플래그 추가
+        polygon.myData = { name: "", desc: "", saved: false };
 
         var internalHandler = function(e) {
             if (e.preventMap) e.preventMap();
@@ -148,7 +173,6 @@
         setTimeout(() => { isPolygonClicked = false; }, 100);
     }
 
-    // 🚨 핵심: 상황에 맞는 버튼 렌더링
     function openSidebar(poly) {
         activePolygon = poly;
         document.getElementById('t_name').value = poly.myData.name;
@@ -157,13 +181,11 @@
         var btnGroup = document.getElementById('button-group');
         
         if (!poly.myData.saved) {
-            // 최초 저장 시: 저장 버튼만
-            btnGroup.innerHTML = '<button class="btn-full save-color" onclick="saveData()">최초 정보 저장</button>';
+            btnGroup.innerHTML = '<button class="btn-full save-color" onclick="saveData()">저장하기</button>';
         } else {
-            // 이미 저장된 객체: 수정 및 삭제 버튼
             btnGroup.innerHTML = `
-                <button class="btn-full edit-color" onclick="saveData()">정보 수정</button>
-                <button class="btn-full delete-color" onclick="deletePolygon()">영역 삭제</button>
+                <button class="btn-full edit-color" onclick="saveData()">수정</button>
+                <button class="btn-full delete-color" onclick="deletePolygon()">삭제</button>
             `;
         }
         
@@ -175,7 +197,6 @@
         activePolygon = null;
     }
 
-    // 저장/수정 공통 함수
     function saveData() {
         if (!activePolygon) return;
         var name = document.getElementById('t_name').value;
@@ -183,21 +204,19 @@
 
         activePolygon.myData.name = name;
         activePolygon.myData.desc = document.getElementById('t_desc').value;
-        activePolygon.myData.saved = true; // 저장 완료 표시
+        activePolygon.myData.saved = true;
 
         activePolygon.setOptions({ strokeColor: '#2ecc71', fillColor: '#2ecc71', fillOpacity: 0.5 });
-        alert("정보가 반영되었습니다.");
+        alert("성공적으로 저장되었습니다.");
         closeSidebar();
     }
 
-    // 🚨 삭제 함수
     function deletePolygon() {
         if (!activePolygon) return;
-        
-        if (confirm("정말로 이 영역을 삭제하시겠습니까? 한 번 지우면 복구할 수 없습니다.")) {
-            activePolygon.setMap(null); // 지도에서 제거
-            activePolygon = null; // 메모리 참조 제거
-            alert("영역이 삭제되었습니다.");
+        if (confirm("정말로 이 영역을 삭제하시겠습니까?")) {
+            activePolygon.setMap(null);
+            activePolygon = null;
+            alert("삭제되었습니다.");
             closeSidebar();
         }
     }
