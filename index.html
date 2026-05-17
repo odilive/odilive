@@ -39,14 +39,33 @@
         color: #7f8c8d;
         font-weight: bold;
       }
+
+      /* [수정] 컨트롤러 영역: 왼쪽 필터 그룹과 오른쪽 그리기 버튼을 양 끝으로 배치 */
       .controls {
         margin-bottom: 15px;
         display: flex;
-        gap: 10px;
+        justify-content: space-between; /* 양 끝 정렬 처리 */
         align-items: center;
         flex-shrink: 0;
-        flex-wrap: wrap;
+        width: 100%;
+        box-sizing: border-box;
       }
+
+      /* [추가] 필터 버튼들을 감싸는 왼쪽 그룹 정렬 */
+      .filter-group {
+        display: flex;
+        gap: 8px; /* 버튼 간의 간격 */
+        align-items: center;
+      }
+
+      /* [추가] 버튼 안의 로고 이미지 스타일 정의 */
+      .btn-logo {
+        height: 18px; /* 버튼 높이에 맞는 로고 크기 최적화 */
+        width: auto; /* 가로세로 비율 유지 */
+        vertical-align: middle;
+        object-fit: contain; /* 이미지 깨짐 방지 */
+      }
+
       #map {
         width: 100%;
         flex: 1;
@@ -76,34 +95,47 @@
         background: #3498db;
         color: white;
         box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3);
+        display: inline-flex;
+        align-items: center;
       }
       .btn-export {
         background: #2c3e50;
         color: white;
       }
+
+      /* [수정] 필터 버튼 공통 정렬 및 패딩 조절 */
       .filter {
         background: #fff;
         border: 1px solid #ddd;
         color: #777;
-        padding: 10px 15px;
+        padding: 8px 15px; /* 이미지가 들어가므로 상하 높이 정돈 */
         font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
       .filter.active {
         color: white;
         border-color: transparent;
       }
+
+      /* [수정] 브랜드별 공식 컬러 완벽 반영 */
       .filter.daiso.active {
-        background: #ff4d4d;
+        background: #e5001a; /* 다이소 레드 */
       }
       .filter.olive.active {
-        background: #8fb339;
+        background: #82dc28; /* 올리브영 그린 */
       }
       .filter.star.active {
-        background: #00704a;
+        background: #006241; /* 스타벅스 그린 */
       }
       .filter.ssm.active {
-        background: #f39c12;
+        background: #f39c12; /* 대형슈퍼 오렌지 (기존 유지) */
       }
+      .filter.library.active {
+        background: #2b5c8f; /* 도서관 딥블루 */
+      }
+
       #sidebar {
         position: fixed;
         top: 0;
@@ -188,36 +220,46 @@
     </div>
 
     <div class="controls">
+      <div class="filter-group">
+        <button
+          id="filter-daiso"
+          class="btn filter daiso active"
+          onclick="toggleBrand('다이소')"
+        >
+          <img src="daiso.png" alt="다이소" class="btn-logo" /> 다이소
+        </button>
+        <button
+          id="filter-olive"
+          class="btn filter olive active"
+          onclick="toggleBrand('올리브영')"
+        >
+          <img src="olive.png" alt="올리브영" class="btn-logo" /> 올리브영
+        </button>
+        <button
+          id="filter-star"
+          class="btn filter star active"
+          onclick="toggleBrand('스타벅스')"
+        >
+          <img src="starbucks.png" alt="스타벅스" class="btn-logo" /> 스타벅스
+        </button>
+        <button
+          id="filter-ssm"
+          class="btn filter ssm active"
+          onclick="toggleBrand('대형슈퍼')"
+        >
+          <img src="ssm.png" alt="대형슈퍼" class="btn-logo" /> 대형슈퍼
+        </button>
+        <button
+          id="filter-library"
+          class="btn filter library active"
+          onclick="toggleBrand('도서관')"
+        >
+          <img src="library.png" alt="도서관" class="btn-logo" /> 도서관
+        </button>
+      </div>
+
       <button id="btnStart" class="btn btn-start" onclick="toggleDrawing(true)">
         📍 새 동네 영역 그리기
-      </button>
-      <button
-        id="filter-daiso"
-        class="btn filter daiso active"
-        onclick="toggleBrand('다이소')"
-      >
-        🌸 다이소
-      </button>
-      <button
-        id="filter-olive"
-        class="btn filter olive active"
-        onclick="toggleBrand('올리브영')"
-      >
-        🌿 올리브영
-      </button>
-      <button
-        id="filter-star"
-        class="btn filter star active"
-        onclick="toggleBrand('스타벅스')"
-      >
-        ☕ 스타벅스
-      </button>
-      <button
-        id="filter-ssm"
-        class="btn filter ssm active"
-        onclick="toggleBrand('대형슈퍼')"
-      >
-        🛒 대형슈퍼
       </button>
     </div>
 
@@ -258,21 +300,21 @@
         올리브영: {
           active: true,
           markers: {},
-          keywords: ["올리브영"],
+          keywords: ["올리브영 드럭스토어"],
           btnId: "filter-olive",
           icon: "olive.png", // 올리브영 실제 로고 파일
         },
         다이소: {
           active: true,
           markers: {},
-          keywords: ["다이소"],
+          keywords: ["다이소 생활용품점"],
           btnId: "filter-daiso",
           icon: "daiso.png", // 다운로드한 파일명
         },
         스타벅스: {
           active: true,
           markers: {},
-          keywords: ["스타벅스"],
+          keywords: ["스타벅스 커피전문점"],
           btnId: "filter-star",
           icon: "starbucks.png",
         },
@@ -283,7 +325,17 @@
           btnId: "filter-ssm",
           icon: "ssm.png", // 카트 아이콘
         },
+        도서관: {
+          active: true,
+          markers: {},
+          keywords: ["국공립도서관"],
+          btnId: "filter-library",
+          icon: "library.png",
+        },
       };
+
+      // 인포윈도우를 담을 전역 변수
+      var infoWindow = new kakao.maps.InfoWindow({ zIndex: 999 });
 
       function updateBrandMarkers() {
         var bounds = map.getBounds();
@@ -298,6 +350,7 @@
           다이소: 90,
           스타벅스: 80,
           올리브영: 70,
+          도서관: 60,
         };
 
         Object.keys(brandData).forEach((brand) => {
@@ -314,6 +367,7 @@
                     // 마커가 이미 생성되어 있지 않은 경우에만 새로 생성
                     if (!brandData[brand].markers[place.id]) {
                       var imageSize = new kakao.maps.Size(35, 35);
+
                       var markerImage = new kakao.maps.MarkerImage(
                         finalIcon,
                         imageSize,
@@ -327,6 +381,51 @@
                         // ★ 브랜드 우선순위에 따라 겹침 순서 결정 ★
                         zIndex: brandPriority[brand] || 10,
                       });
+
+                      // ========================================================
+                      // ★ [기능 수정] 모든 브랜드 클릭 시 상세페이지 이동 기본 탑재 ★
+                      // ========================================================
+
+                      // 1. 대형슈퍼와 도서관만 '말풍선 호버링' 이벤트 추가
+                      if (brand === "대형슈퍼" || brand === "도서관") {
+                        var content = `
+                          <div style="padding:6px 10px; font-size:12px; font-weight:bold; color:#2c3e50; white-space:nowrap; text-align:center; font-family:sans-serif;">
+                            ${place.place_name}
+                          </div>
+                        `;
+
+                        // 마우스 올렸을 때: 말풍선 띄우기
+                        kakao.maps.event.addListener(
+                          marker,
+                          "mouseover",
+                          function () {
+                            infoWindow.setContent(content);
+                            infoWindow.open(map, marker);
+                          },
+                        );
+
+                        // 마우스 내렸을 때: 말풍선 닫기
+                        kakao.maps.event.addListener(
+                          marker,
+                          "mouseout",
+                          function () {
+                            infoWindow.close();
+                          },
+                        );
+                      }
+
+                      // 2. [공통] 모든 브랜드 마커 클릭 시 카카오맵 상세페이지 새 창으로 열기
+                      kakao.maps.event.addListener(
+                        marker,
+                        "click",
+                        function () {
+                          if (place.place_url) {
+                            window.open(place.place_url, "_blank");
+                          }
+                        },
+                      );
+                      // ========================================================
+
                       brandData[brand].markers[place.id] = marker;
                     }
                   });
@@ -359,6 +458,97 @@
       var startMarker = null;
       var activePolygon = null;
       var isPolygonClicked = false;
+      var subMarkers = [];
+
+      function isPointInPolygon(point, polygonPoints) {
+        var lat = point.getLat();
+        var lng = point.getLng();
+        var inside = false;
+
+        for (
+          var i = 0, j = polygonPoints.length - 1;
+          i < polygonPoints.length;
+          j = i++
+        ) {
+          var xi = polygonPoints[i].getLat(),
+            yi = polygonPoints[i].getLng();
+          var xj = polygonPoints[j].getLat(),
+            yj = polygonPoints[j].getLng();
+
+          var intersect =
+            yi > lng !== yj > lng &&
+            lat < ((xj - xi) * (lng - yi)) / (yj - yi) + xi;
+          if (intersect) inside = !inside;
+        }
+
+        return inside;
+      }
+
+      // [추가] 생성된 미니 이모지 마커들을 지도에서 깨끗이 지우는 함수
+      function clearSubMarkers() {
+        subMarkers.forEach(function (marker) {
+          marker.setMap(null);
+        });
+        subMarkers = [];
+      }
+
+      // [추가] 클릭된 폴리곤 내부의 편·약·빨을 스캔해서 이모지를 띄우는 핵심 함수
+      function scanFacilitiesInPolygon(polygon) {
+        clearSubMarkers(); // 기존에 켜져 있던 마커 청소
+
+        var path = polygon.getPath(); // 폴리곤 꼭짓점 좌표들
+        if (path.length === 0) return;
+
+        // 스캔 대상 설정 (카카오 카테고리 코드 2개, 일반 검색어 1개)
+        var searchTargets = [
+          { type: "keyword", code: "편의점", emoji: "🏪" }, // 편의점
+          { type: "keyword", code: "약국", emoji: "💊" }, // 약국
+          { type: "keyword", code: "셀프빨래방", emoji: "🧺" }, // 셀프빨래방
+        ];
+
+        searchTargets.forEach(function (target) {
+          // 폴리곤의 첫 꼭짓점 기준 반경 2km 이내를 넉넉하게 스캔
+          var searchOptions = {
+            location: path[0],
+            radius: 2000,
+          };
+
+          var callback = function (data, status) {
+            if (status === kakao.maps.services.Status.OK) {
+              data.forEach(function (place) {
+                var placeLatLng = new kakao.maps.LatLng(place.y, place.x);
+
+                // 검색된 장소가 진짜 폴리곤 내부(안쪽)에 있는 녀석인지 검사
+                if (isPointInPolygon(placeLatLng, path)) {
+                  // 지도에 지저분하지 않게 올라갈 아주 작은 크기(16px)의 이모지 레이아웃
+                  var content = `
+                    <div style="font-size: 16px; line-height: 1; filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.3)); cursor: default; user-select: none;">
+                      ${target.emoji}
+                    </div>
+                  `;
+
+                  var customOverlay = new kakao.maps.CustomOverlay({
+                    position: placeLatLng,
+                    content: content,
+                    xAnchor: 0.5,
+                    yAnchor: 0.5,
+                  });
+
+                  customOverlay.setMap(map);
+                  subMarkers.push(customOverlay); // 나중에 지우기 위해 배열에 저장
+                }
+              });
+            }
+          };
+
+          // 카카오 API 타입에 맞게 교차 검색 실행
+          if (target.type === "category") {
+            ps.categorySearch(target.code, callback, searchOptions);
+          } else {
+            ps.keywordSearch(target.code, callback, searchOptions);
+          }
+        });
+      }
 
       function toggleDrawing(status) {
         isDrawing = status;
@@ -381,8 +571,12 @@
         startMarker = null;
       }
 
+      // 지도 빈 곳 클릭 리스너
       kakao.maps.event.addListener(map, "click", function () {
-        if (!isDrawing && !isPolygonClicked) closeSidebar();
+        if (!isDrawing && !isPolygonClicked) {
+          closeSidebar();
+          clearSubMarkers(); // [수정] 빈 지도 클릭 시 켜져 있던 미니 이모지도 함께 숨김
+        }
         isPolygonClicked = false;
       });
 
@@ -395,7 +589,7 @@
             Math.pow(startP.getLat() - latlng.getLat(), 2) +
               Math.pow(startP.getLng() - latlng.getLng(), 2),
           );
-          if (dist < 0.0001) {
+          if (dist < 0.001) {
             finishDrawing();
             return;
           }
@@ -457,13 +651,18 @@
           clickable: true,
         });
         polygon.myData = { name: "", desc: "", saved: false };
+
         var internalHandler = function (e) {
           if (e.preventMap) e.preventMap();
           if (e.domEvent && e.domEvent.stopPropagation)
             e.domEvent.stopPropagation();
           isPolygonClicked = true;
           openSidebar(polygon);
+
+          // [수정] 기생성된 폴리곤 클릭 시 내부 편·약·빨 레이더 가동
+          scanFacilitiesInPolygon(polygon);
         };
+
         kakao.maps.event.addListener(polygon, "mousedown", internalHandler);
         kakao.maps.event.addListener(polygon, "click", internalHandler);
         kakao.maps.event.addListener(polygon, "mouseover", function () {
@@ -472,8 +671,13 @@
         kakao.maps.event.addListener(polygon, "mouseout", function () {
           mapContainer.classList.remove("poly-hover");
         });
+
         isPolygonClicked = true;
         openSidebar(polygon);
+
+        // [수정] 폴리곤을 처음 다 그려서 완성한 시점에도 즉시 편·약·빨 스캔 실행
+        scanFacilitiesInPolygon(polygon);
+
         toggleDrawing(false);
         resetDrawing();
         setTimeout(() => {
@@ -502,6 +706,7 @@
       }
 
       function closeSidebar() {
+        clearSubMarkers();
         document.getElementById("sidebar").classList.remove("open");
         activePolygon = null;
       }
