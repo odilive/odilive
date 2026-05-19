@@ -3,10 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <title>어디살까 - 편집 시스템</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;700&family=S-Core+Dream:wght@900&display=swap"
+      rel="stylesheet"
+    />
     <style>
-      /* [기존 스타일 유지] */
+      /* [수정] 1. 사이트 전체 레이아웃 (body 단독 설정으로 복구) */
       body {
-        font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
         margin: 0;
         padding: 20px;
         background-color: #f0f2f5;
@@ -16,6 +21,21 @@
         flex-direction: column;
         box-sizing: border-box;
       }
+
+      /* [수정] 2. 굴림체 방어 및 프리텐다드 폰트만 공통 적용 (레이아웃에 영향 없음) */
+      body,
+      button,
+      input,
+      select,
+      textarea {
+        font-family:
+          "Pretendard",
+          -apple-system,
+          BlinkMacSystemFont,
+          system-ui,
+          sans-serif;
+      }
+
       .admin-header {
         display: flex;
         justify-content: space-between;
@@ -25,9 +45,11 @@
         border-bottom: 2px solid #3498db;
         flex-shrink: 0;
       }
+      /* 제목은 로고와 찰떡인 에스코어 드림 900 두께로 설정 */
       .admin-header h1 {
         margin: 0;
         font-size: 28px;
+        font-family: "S-Core Dream", sans-serif;
         font-weight: 900;
         color: #2c3e50;
       }
@@ -40,7 +62,7 @@
         font-weight: bold;
       }
 
-      /* [수정] 컨트롤러 영역: 왼쪽 필터 그룹과 오른쪽 그리기 버튼을 양 끝으로 배치 */
+      /* 컨트롤러 영역: 왼쪽 필터 그룹과 오른쪽 그리기 버튼을 양 끝으로 배치 */
       .controls {
         margin-bottom: 15px;
         display: flex;
@@ -51,14 +73,14 @@
         box-sizing: border-box;
       }
 
-      /* [추가] 필터 버튼들을 감싸는 왼쪽 그룹 정렬 */
+      /* 필터 버튼들을 감싸는 왼쪽 그룹 정렬 */
       .filter-group {
         display: flex;
         gap: 8px; /* 버튼 간의 간격 */
         align-items: center;
       }
 
-      /* [추가] 버튼 안의 로고 이미지 스타일 정의 */
+      /* 버튼 안의 로고 이미지 스타일 정의 */
       .btn-logo {
         height: 18px; /* 버튼 높이에 맞는 로고 크기 최적화 */
         width: auto; /* 가로세로 비율 유지 */
@@ -80,7 +102,9 @@
       .poly-hover {
         cursor: pointer !important;
       }
+      /* 버튼들이 시스템 폰트로 튕기지 않고 프리텐다드를 따르도록 수정 */
       .btn {
+        font-family: inherit;
         padding: 12px 20px;
         font-weight: bold;
         border: none;
@@ -103,7 +127,7 @@
         color: white;
       }
 
-      /* [수정] 필터 버튼 공통 정렬 및 패딩 조절 */
+      /* 필터 버튼 공통 정렬 및 패딩 조절 */
       .filter {
         background: #fff;
         border: 1px solid #ddd;
@@ -119,7 +143,7 @@
         border-color: transparent;
       }
 
-      /* [수정] 브랜드별 공식 컬러 완벽 반영 */
+      /* 브랜드별 공식 컬러 완벽 반영 */
       .filter.daiso.active {
         background: #e5001a; /* 다이소 레드 */
       }
@@ -164,8 +188,10 @@
         cursor: pointer;
         color: #999;
       }
+      /* 입력창들이 프리텐다드 폰트를 상속받도록 수정 */
       input,
       textarea {
+        font-family: inherit;
         width: 100%;
         margin-bottom: 15px;
         padding: 12px;
@@ -179,7 +205,9 @@
         gap: 10px;
         margin-top: auto;
       }
+      /* 사이드바 버튼 폰트 상속 처리 */
       .btn-full {
+        font-family: inherit;
         flex: 1;
         padding: 15px;
         border-radius: 6px;
@@ -213,7 +241,7 @@
         <h1
           style="margin: 0; font-size: 28px; font-weight: 900; color: #2c3e50"
         >
-          어디살까
+          어디살까? 자취하기 좋은 동네!
         </h1>
       </div>
       <div class="status">Editor Mode: odilive</div>
@@ -226,35 +254,36 @@
           class="btn filter daiso active"
           onclick="toggleBrand('다이소')"
         >
-          <img src="daiso.png" alt="다이소" class="btn-logo" /> 다이소
+          <img src="daiso.png" alt="다이소" class="btn-logo" /> &nbsp;다이소
         </button>
         <button
           id="filter-olive"
           class="btn filter olive active"
           onclick="toggleBrand('올리브영')"
         >
-          <img src="olive.png" alt="올리브영" class="btn-logo" /> 올리브영
+          <img src="olive.png" alt="올리브영" class="btn-logo" /> &nbsp;올리브영
         </button>
         <button
           id="filter-star"
           class="btn filter star active"
           onclick="toggleBrand('스타벅스')"
         >
-          <img src="starbucks.png" alt="스타벅스" class="btn-logo" /> 스타벅스
+          <img src="starbucks.png" alt="스타벅스" class="btn-logo" />
+          &nbsp;스타벅스
         </button>
         <button
           id="filter-ssm"
           class="btn filter ssm active"
           onclick="toggleBrand('대형슈퍼')"
         >
-          <img src="ssm.png" alt="대형슈퍼" class="btn-logo" /> 대형슈퍼
+          <img src="ssm.png" alt="대형슈퍼" class="btn-logo" /> &nbsp;대형슈퍼
         </button>
         <button
           id="filter-library"
           class="btn filter library active"
           onclick="toggleBrand('도서관')"
         >
-          <img src="library.png" alt="도서관" class="btn-logo" /> 도서관
+          <img src="library.png" alt="도서관" class="btn-logo" /> &nbsp;도서관
         </button>
       </div>
 
@@ -267,7 +296,7 @@
 
     <div id="sidebar">
       <button class="close-btn" onclick="closeSidebar()">&times;</button>
-      <h3>🏡 동네 정보 설정</h3>
+      <h3>🏡 동네 정보</h3>
       <input
         type="text"
         id="t_name"
@@ -499,49 +528,71 @@
         var path = polygon.getPath(); // 폴리곤 꼭짓점 좌표들
         if (path.length === 0) return;
 
-        // 스캔 대상 설정 (카카오 카테고리 코드 2개, 일반 검색어 1개)
+        // [추천] 폴리곤 전체를 감싸는 사각 영역(Bounds)을 계산하여 검색 정확도 극대화
+        var bounds = new kakao.maps.LatLngBounds();
+        path.forEach(function (latlng) {
+          bounds.extend(latlng);
+        });
+
+        // 스캔 대상 설정 (전부 키워드 검색으로 통일되어 있으므로 그대로 유지)
         var searchTargets = [
-          { type: "keyword", code: "편의점", emoji: "🏪" }, // 편의점
-          { type: "keyword", code: "약국", emoji: "💊" }, // 약국
-          { type: "keyword", code: "셀프빨래방", emoji: "🧺" }, // 셀프빨래방
+          { type: "keyword", code: "편의점", emoji: "🏪" },
+          { type: "keyword", code: "약국", emoji: "💊" },
+          { type: "keyword", code: "셀프빨래방", emoji: "🧺" },
         ];
 
         searchTargets.forEach(function (target) {
-          // 폴리곤의 첫 꼭짓점 기준 반경 2km 이내를 넉넉하게 스캔
+          // 첫 점 기준 2km 대신, 폴리곤 사각 영역(bounds) 내를 검색하도록 옵션 변경
           var searchOptions = {
-            location: path[0],
-            radius: 2000,
+            bounds: bounds,
+            size: 15, // 한 페이지에 15개씩
           };
 
-          var callback = function (data, status) {
+          // 카카오 검색 콜백 함수 (pagination 매개변수 추가)
+          var callback = function (data, status, pagination) {
             if (status === kakao.maps.services.Status.OK) {
               data.forEach(function (place) {
                 var placeLatLng = new kakao.maps.LatLng(place.y, place.x);
 
                 // 검색된 장소가 진짜 폴리곤 내부(안쪽)에 있는 녀석인지 검사
                 if (isPointInPolygon(placeLatLng, path)) {
-                  // 지도에 지저분하지 않게 올라갈 아주 작은 크기(16px)의 이모지 레이아웃
-                  var content = `
-                    <div style="font-size: 16px; line-height: 1; filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.3)); cursor: default; user-select: none;">
-                      ${target.emoji}
-                    </div>
-                  `;
-
-                  var customOverlay = new kakao.maps.CustomOverlay({
-                    position: placeLatLng,
-                    content: content,
-                    xAnchor: 0.5,
-                    yAnchor: 0.5,
+                  // 중복 마커 생성 방지 (동일한 장소가 여러 페이지에서 중복 검출될 때 방어)
+                  var isDuplicate = subMarkers.some(function (marker) {
+                    var pos = marker.getPosition();
+                    return (
+                      pos.getLat() === placeLatLng.getLat() &&
+                      pos.getLng() === placeLatLng.getLng()
+                    );
                   });
 
-                  customOverlay.setMap(map);
-                  subMarkers.push(customOverlay); // 나중에 지우기 위해 배열에 저장
+                  if (!isDuplicate) {
+                    var content = `
+                      <div style="font-size: 16px; line-height: 1; filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.3)); cursor: default; user-select: none;">
+                        ${target.emoji}
+                      </div>
+                    `;
+
+                    var customOverlay = new kakao.maps.CustomOverlay({
+                      position: placeLatLng,
+                      content: content,
+                      xAnchor: 0.5,
+                      yAnchor: 0.5,
+                    });
+
+                    customOverlay.setMap(map);
+                    subMarkers.push(customOverlay);
+                  }
                 }
               });
+
+              // [핵심 추가] 다음 페이지 결과가 더 있다면(최대 3페이지, 45개까지) 자동으로 이어서 검색!
+              if (pagination.hasNextPage) {
+                pagination.nextPage();
+              }
             }
           };
 
-          // 카카오 API 타입에 맞게 교차 검색 실행
+          // 검색 실행
           if (target.type === "category") {
             ps.categorySearch(target.code, callback, searchOptions);
           } else {
@@ -693,7 +744,7 @@
         if (!poly.myData.saved) {
           // [수정] 저장하기 옆에 취소 버튼 추가
           btnGroup.innerHTML = `
-            <button class="btn-full save-color" onclick="saveData()">저장하기</button>
+            <button class="btn-full save-color" onclick="saveData()">저장</button>
             <button class="btn-full delete-color" onclick="cancelDrawing()">취소</button>
         `;
         } else {
