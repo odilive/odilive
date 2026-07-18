@@ -2,7 +2,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>어디살까 - 편집 시스템</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>어디살까? 자취하기 좋은 동네!</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -10,7 +11,6 @@
       rel="stylesheet"
     />
     <style>
-      /* [수정] 1. 사이트 전체 레이아웃 (body 단독 설정으로 복구) */
       body {
         margin: 0;
         padding: 20px;
@@ -22,7 +22,6 @@
         box-sizing: border-box;
       }
 
-      /* [수정] 2. 굴림체 방어 및 프리텐다드 폰트만 공통 적용 (레이아웃에 영향 없음) */
       body,
       button,
       input,
@@ -36,56 +35,37 @@
           sans-serif;
       }
 
-      .admin-header {
+      .header {
         display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
+        align-items: center;
+        gap: 15px;
         margin-bottom: 20px;
         padding: 10px 5px;
         border-bottom: 2px solid #3498db;
         flex-shrink: 0;
       }
-      /* 제목은 로고와 찰떡인 에스코어 드림 900 두께로 설정 */
-      .admin-header h1 {
+      .header h1 {
         margin: 0;
-        font-size: 28px;
+        font-size: 24px;
         font-family: "S-Core Dream", sans-serif;
         font-weight: 900;
         color: #2c3e50;
       }
-      .admin-header h1 span {
-        color: #3498db;
-      }
-      .admin-header .status {
-        font-size: 14px;
-        color: #7f8c8d;
-        font-weight: bold;
-      }
 
-      /* 컨트롤러 영역: 왼쪽 필터 그룹과 오른쪽 그리기 버튼을 양 끝으로 배치 */
       .controls {
         margin-bottom: 15px;
         display: flex;
-        justify-content: space-between; /* 양 끝 정렬 처리 */
+        gap: 8px;
         align-items: center;
         flex-shrink: 0;
-        width: 100%;
-        box-sizing: border-box;
+        overflow-x: auto;
       }
 
-      /* 필터 버튼들을 감싸는 왼쪽 그룹 정렬 */
-      .filter-group {
-        display: flex;
-        gap: 8px; /* 버튼 간의 간격 */
-        align-items: center;
-      }
-
-      /* 버튼 안의 로고 이미지 스타일 정의 */
       .btn-logo {
-        height: 18px; /* 버튼 높이에 맞는 로고 크기 최적화 */
-        width: auto; /* 가로세로 비율 유지 */
+        height: 18px;
+        width: auto;
         vertical-align: middle;
-        object-fit: contain; /* 이미지 깨짐 방지 */
+        object-fit: contain;
       }
 
       #map {
@@ -95,72 +75,52 @@
         border: 1px solid #ced4da;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       }
-      .draw-mode #map,
-      .draw-mode #map * {
-        cursor: crosshair !important;
-      }
       .poly-hover {
         cursor: pointer !important;
       }
-      /* 버튼들이 시스템 폰트로 튕기지 않고 프리텐다드를 따르도록 수정 */
+
       .btn {
         font-family: inherit;
-        padding: 12px 20px;
+        padding: 8px 15px;
+        font-size: 13px;
         font-weight: bold;
         border: none;
         border-radius: 6px;
         cursor: pointer;
         transition: 0.2s;
+        background: #fff;
+        border: 1px solid #ddd;
+        color: #777;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
       }
       .btn:hover {
         opacity: 0.8;
       }
-      .btn-start {
-        background: #3498db;
-        color: white;
-        box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3);
-        display: inline-flex;
-        align-items: center;
-      }
-      .btn-export {
-        background: #2c3e50;
-        color: white;
-      }
-
-      /* 필터 버튼 공통 정렬 및 패딩 조절 */
-      .filter {
-        background: #fff;
-        border: 1px solid #ddd;
-        color: #777;
-        padding: 8px 15px; /* 이미지가 들어가므로 상하 높이 정돈 */
-        font-size: 13px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .filter.active {
+      .btn.active {
         color: white;
         border-color: transparent;
       }
-
-      /* 브랜드별 공식 컬러 완벽 반영 */
-      .filter.daiso.active {
-        background: #e5001a; /* 다이소 레드 */
+      .btn.daiso.active {
+        background: #e5001a;
       }
-      .filter.olive.active {
-        background: #82dc28; /* 올리브영 그린 */
+      .btn.olive.active {
+        background: #82dc28;
       }
-      .filter.star.active {
-        background: #006241; /* 스타벅스 그린 */
+      .btn.star.active {
+        background: #006241;
       }
-      .filter.ssm.active {
-        background: #f39c12; /* 대형슈퍼 오렌지 (기존 유지) */
+      .btn.ssm.active {
+        background: #f39c12;
       }
-      .filter.library.active {
-        background: #2b5c8f; /* 도서관 딥블루 */
+      .btn.library.active {
+        background: #2b5c8f;
       }
 
-      #sidebar {
+      /* 상세 정보 패널 (PC: 오른쪽 슬라이드, 모바일: 하단 바텀시트) */
+      #info-panel {
         position: fixed;
         top: 0;
         right: -400px;
@@ -172,11 +132,20 @@
         box-shadow: -5px 0 20px rgba(0, 0, 0, 0.2);
         transition: 0.3s ease-out;
         box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
       }
-      #sidebar.open {
+      #info-panel.open {
         right: 0;
+      }
+      #info-panel h3 {
+        margin: 0 0 15px;
+        font-size: 20px;
+        color: #2c3e50;
+      }
+      #info-panel p {
+        white-space: pre-wrap;
+        line-height: 1.6;
+        color: #555;
+        font-size: 14px;
       }
       .close-btn {
         position: absolute;
@@ -188,157 +157,100 @@
         cursor: pointer;
         color: #999;
       }
-      /* 입력창들이 프리텐다드 폰트를 상속받도록 수정 */
-      input,
-      textarea {
-        font-family: inherit;
-        width: 100%;
-        margin-bottom: 15px;
-        padding: 12px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        box-sizing: border-box;
-        font-size: 14px;
-      }
-      #button-group {
-        display: flex;
-        gap: 10px;
-        margin-top: auto;
-      }
-      /* 사이드바 버튼 폰트 상속 처리 */
-      .btn-full {
-        font-family: inherit;
-        flex: 1;
-        padding: 15px;
-        border-radius: 6px;
-        font-weight: bold;
-        cursor: pointer;
-        border: none;
-        font-size: 15px;
-      }
-      .save-color {
-        background: #2ecc71;
-        color: white;
-      }
-      .edit-color {
-        background: #3498db;
-        color: white;
-      }
-      .delete-color {
-        background: #e74c3c;
-        color: white;
+
+      @media (max-width: 600px) {
+        #info-panel {
+          top: auto;
+          right: 0;
+          bottom: -100%;
+          width: 100%;
+          height: auto;
+          max-height: 60vh;
+          overflow-y: auto;
+          border-radius: 16px 16px 0 0;
+          box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.2);
+        }
+        #info-panel.open {
+          bottom: 0;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="admin-header">
-      <div style="display: flex; align-items: center; gap: 15px">
-        <img
-          src="logo.png"
-          alt="어디살까 로고"
-          style="height: 70px; width: auto"
-        />
-        <h1
-          style="margin: 0; font-size: 28px; font-weight: 900; color: #2c3e50"
-        >
-          어디살까? 자취하기 좋은 동네!
-        </h1>
-      </div>
-      <div class="status">Editor Mode: odilive</div>
+    <div class="header">
+      <img src="logo.png" alt="어디살까 로고" style="height: 50px; width: auto" />
+      <h1>어디살까? 자취하기 좋은 동네!</h1>
     </div>
 
     <div class="controls">
-      <div class="filter-group">
-        <button
-          id="filter-daiso"
-          class="btn filter daiso active"
-          onclick="toggleBrand('다이소')"
-        >
-          <img src="daiso.png" alt="다이소" class="btn-logo" /> &nbsp;다이소
-        </button>
-        <button
-          id="filter-olive"
-          class="btn filter olive active"
-          onclick="toggleBrand('올리브영')"
-        >
-          <img src="olive.png" alt="올리브영" class="btn-logo" /> &nbsp;올리브영
-        </button>
-        <button
-          id="filter-star"
-          class="btn filter star active"
-          onclick="toggleBrand('스타벅스')"
-        >
-          <img src="starbucks.png" alt="스타벅스" class="btn-logo" />
-          &nbsp;스타벅스
-        </button>
-        <button
-          id="filter-ssm"
-          class="btn filter ssm active"
-          onclick="toggleBrand('대형슈퍼')"
-        >
-          <img src="ssm.png" alt="대형슈퍼" class="btn-logo" /> &nbsp;대형슈퍼
-        </button>
-        <button
-          id="filter-library"
-          class="btn filter library active"
-          onclick="toggleBrand('도서관')"
-        >
-          <img src="library.png" alt="도서관" class="btn-logo" /> &nbsp;도서관
-        </button>
-      </div>
-
-      <button id="btnStart" class="btn btn-start" onclick="toggleDrawing(true)">
-        📍 새 동네 영역 그리기
+      <button id="filter-daiso" class="btn daiso active" onclick="toggleBrand('다이소')">
+        <img src="daiso.png" alt="다이소" class="btn-logo" /> &nbsp;다이소
+      </button>
+      <button id="filter-olive" class="btn olive active" onclick="toggleBrand('올리브영')">
+        <img src="olive.png" alt="올리브영" class="btn-logo" /> &nbsp;올리브영
+      </button>
+      <button id="filter-star" class="btn star active" onclick="toggleBrand('스타벅스')">
+        <img src="starbucks.png" alt="스타벅스" class="btn-logo" /> &nbsp;스타벅스
+      </button>
+      <button id="filter-ssm" class="btn ssm active" onclick="toggleBrand('대형슈퍼')">
+        <img src="ssm.png" alt="대형슈퍼" class="btn-logo" /> &nbsp;대형슈퍼
+      </button>
+      <button id="filter-library" class="btn library active" onclick="toggleBrand('도서관')">
+        <img src="library.png" alt="도서관" class="btn-logo" /> &nbsp;도서관
       </button>
     </div>
 
     <div id="map"></div>
 
-    <div id="sidebar">
-      <button class="close-btn" onclick="closeSidebar()">&times;</button>
-      <h3>🏡 동네 정보</h3>
-      <input
-        type="text"
-        id="t_name"
-        placeholder="동네 이름 (예: 성수동 카페거리)"
-      />
-      <textarea
-        id="t_desc"
-        rows="10"
-        placeholder="이 동네의 특징이나 메모를 적어보세요."
-      ></textarea>
-      <div id="button-group"></div>
+    <div id="info-panel">
+      <button class="close-btn" onclick="closeInfoPanel()">&times;</button>
+      <h3 id="info-name"></h3>
+      <div
+        id="info-facility-summary"
+        style="
+          display: flex;
+          gap: 12px;
+          margin-bottom: 15px;
+          font-size: 13px;
+          color: #555;
+        "
+      ></div>
+      <p id="info-desc"></p>
     </div>
 
     <script
       type="text/javascript"
       src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=4221957d3296d5b1b0a48b671070d6cc&libraries=services"
     ></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
+      var SUPABASE_URL = "https://luibrbeiykqyyeatornq.supabase.co";
+      var SUPABASE_KEY = "sb_publishable_GN4Ql4F15uqNfSPgWE1T-A_9d5t0fZm";
+      var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
       var mapContainer = document.getElementById("map");
       var mapOption = {
-        center: new kakao.maps.LatLng(37.4963, 126.9536),
-        level: 6,
+        center: new kakao.maps.LatLng(37.53, 126.9785), // 용산공원 일대
+        level: 8,
       };
       var map = new kakao.maps.Map(mapContainer, mapOption);
       var ps = new kakao.maps.services.Places();
 
-      // 브랜드별 아이콘 이미지 설정
       var brandData = {
         올리브영: {
           active: true,
           markers: {},
           keywords: ["올리브영 드럭스토어"],
           btnId: "filter-olive",
-          icon: "olive.png", // 올리브영 실제 로고 파일
+          icon: "olive.png",
         },
         다이소: {
           active: true,
           markers: {},
           keywords: ["다이소 생활용품점"],
           btnId: "filter-daiso",
-          icon: "daiso.png", // 다운로드한 파일명
+          icon: "daiso.png",
         },
         스타벅스: {
           active: true,
@@ -352,7 +264,7 @@
           markers: {},
           keywords: ["대형슈퍼"],
           btnId: "filter-ssm",
-          icon: "ssm.png", // 카트 아이콘
+          icon: "ssm.png",
         },
         도서관: {
           active: true,
@@ -363,17 +275,13 @@
         },
       };
 
-      // 인포윈도우를 담을 전역 변수
       var infoWindow = new kakao.maps.InfoWindow({ zIndex: 999 });
 
       function updateBrandMarkers() {
         var bounds = map.getBounds();
         var level = map.getLevel();
+        var isZoomIn = level <= 5;
 
-        // 1. 레벨 4 이하에서만 마커가 보이도록 설정 (사용자님 기준 유지)
-        var isZoomIn = level <= 4;
-
-        // 2. 브랜드별 겹침 우선순위 설정 (숫자가 높을수록 위로 올라옴)
         var brandPriority = {
           대형슈퍼: 100,
           다이소: 90,
@@ -393,67 +301,37 @@
                   data.forEach((place) => {
                     var finalIcon = brandData[brand].icon;
 
-                    // 마커가 이미 생성되어 있지 않은 경우에만 새로 생성
                     if (!brandData[brand].markers[place.id]) {
                       var imageSize = new kakao.maps.Size(35, 35);
-
-                      var markerImage = new kakao.maps.MarkerImage(
-                        finalIcon,
-                        imageSize,
-                      );
+                      var markerImage = new kakao.maps.MarkerImage(finalIcon, imageSize);
 
                       var marker = new kakao.maps.Marker({
                         position: new kakao.maps.LatLng(place.y, place.x),
                         image: markerImage,
-                        // 확대 상태면 보이고 아니면 숨김
                         map: isZoomIn ? map : null,
-                        // ★ 브랜드 우선순위에 따라 겹침 순서 결정 ★
                         zIndex: brandPriority[brand] || 10,
                       });
 
-                      // ========================================================
-                      // ★ [기능 수정] 모든 브랜드 클릭 시 상세페이지 이동 기본 탑재 ★
-                      // ========================================================
-
-                      // 1. 대형슈퍼와 도서관만 '말풍선 호버링' 이벤트 추가
                       if (brand === "대형슈퍼" || brand === "도서관") {
                         var content = `
                           <div style="padding:6px 10px; font-size:12px; font-weight:bold; color:#2c3e50; white-space:nowrap; text-align:center; font-family:sans-serif;">
                             ${place.place_name}
                           </div>
                         `;
-
-                        // 마우스 올렸을 때: 말풍선 띄우기
-                        kakao.maps.event.addListener(
-                          marker,
-                          "mouseover",
-                          function () {
-                            infoWindow.setContent(content);
-                            infoWindow.open(map, marker);
-                          },
-                        );
-
-                        // 마우스 내렸을 때: 말풍선 닫기
-                        kakao.maps.event.addListener(
-                          marker,
-                          "mouseout",
-                          function () {
-                            infoWindow.close();
-                          },
-                        );
+                        kakao.maps.event.addListener(marker, "mouseover", function () {
+                          infoWindow.setContent(content);
+                          infoWindow.open(map, marker);
+                        });
+                        kakao.maps.event.addListener(marker, "mouseout", function () {
+                          infoWindow.close();
+                        });
                       }
 
-                      // 2. [공통] 모든 브랜드 마커 클릭 시 카카오맵 상세페이지 새 창으로 열기
-                      kakao.maps.event.addListener(
-                        marker,
-                        "click",
-                        function () {
-                          if (place.place_url) {
-                            window.open(place.place_url, "_blank");
-                          }
-                        },
-                      );
-                      // ========================================================
+                      kakao.maps.event.addListener(marker, "click", function () {
+                        if (place.place_url) {
+                          window.open(place.place_url, "_blank");
+                        }
+                      });
 
                       brandData[brand].markers[place.id] = marker;
                     }
@@ -477,43 +355,27 @@
       }
 
       kakao.maps.event.addListener(map, "idle", updateBrandMarkers);
+      kakao.maps.event.addListener(map, "zoom_changed", function () {
+        var level = map.getLevel();
+        var showMarkers = level <= 5;
+        Object.keys(brandData).forEach((brand) => {
+          var state = brandData[brand];
+          if (state.active) {
+            Object.values(state.markers).forEach((marker) => {
+              marker.setMap(showMarkers ? map : null);
+            });
+          }
+        });
+        updateNeighborhoodVisibility();
+      });
       updateBrandMarkers();
 
-      // --- 아래는 기존 폴리곤 로직 (수정 없음) ---
-      var isDrawing = false;
-      var drawingPoints = [];
-      var clickline = null;
-      var moveLine = null;
-      var startMarker = null;
-      var activePolygon = null;
+      // ── 저장된 동네 불러오기 (읽기 전용) ──
       var isPolygonClicked = false;
+      var NEIGHBORHOOD_ZOOM_THRESHOLD = 5; // 이 레벨보다 확대되면(숫자가 작아지면) 폴리곤, 아니면 마커
+      var neighborhoods = [];
       var subMarkers = [];
 
-      function isPointInPolygon(point, polygonPoints) {
-        var lat = point.getLat();
-        var lng = point.getLng();
-        var inside = false;
-
-        for (
-          var i = 0, j = polygonPoints.length - 1;
-          i < polygonPoints.length;
-          j = i++
-        ) {
-          var xi = polygonPoints[i].getLat(),
-            yi = polygonPoints[i].getLng();
-          var xj = polygonPoints[j].getLat(),
-            yj = polygonPoints[j].getLng();
-
-          var intersect =
-            yi > lng !== yj > lng &&
-            lat < ((xj - xi) * (lng - yi)) / (yj - yi) + xi;
-          if (intersect) inside = !inside;
-        }
-
-        return inside;
-      }
-
-      // [추가] 생성된 미니 이모지 마커들을 지도에서 깨끗이 지우는 함수
       function clearSubMarkers() {
         subMarkers.forEach(function (marker) {
           marker.setMap(null);
@@ -521,303 +383,145 @@
         subMarkers = [];
       }
 
-      // [추가] 클릭된 폴리곤 내부의 편·약·빨을 스캔해서 이모지를 띄우는 핵심 함수
-      function scanFacilitiesInPolygon(polygon) {
-        clearSubMarkers(); // 기존에 켜져 있던 마커 청소
-
-        var path = polygon.getPath(); // 폴리곤 꼭짓점 좌표들
-        if (path.length === 0) return;
-
-        // [추천] 폴리곤 전체를 감싸는 사각 영역(Bounds)을 계산하여 검색 정확도 극대화
-        var bounds = new kakao.maps.LatLngBounds();
-        path.forEach(function (latlng) {
-          bounds.extend(latlng);
-        });
-
-        // 스캔 대상 설정 (전부 키워드 검색으로 통일되어 있으므로 그대로 유지)
-        var searchTargets = [
-          { type: "keyword", code: "편의점", emoji: "🏪" },
-          { type: "keyword", code: "약국", emoji: "💊" },
-          { type: "keyword", code: "셀프빨래방", emoji: "🧺" },
-        ];
-
-        searchTargets.forEach(function (target) {
-          // 첫 점 기준 2km 대신, 폴리곤 사각 영역(bounds) 내를 검색하도록 옵션 변경
-          var searchOptions = {
-            bounds: bounds,
-            size: 15, // 한 페이지에 15개씩
-          };
-
-          // 카카오 검색 콜백 함수 (pagination 매개변수 추가)
-          var callback = function (data, status, pagination) {
-            if (status === kakao.maps.services.Status.OK) {
-              data.forEach(function (place) {
-                var placeLatLng = new kakao.maps.LatLng(place.y, place.x);
-
-                // 검색된 장소가 진짜 폴리곤 내부(안쪽)에 있는 녀석인지 검사
-                if (isPointInPolygon(placeLatLng, path)) {
-                  // 중복 마커 생성 방지 (동일한 장소가 여러 페이지에서 중복 검출될 때 방어)
-                  var isDuplicate = subMarkers.some(function (marker) {
-                    var pos = marker.getPosition();
-                    return (
-                      pos.getLat() === placeLatLng.getLat() &&
-                      pos.getLng() === placeLatLng.getLng()
-                    );
-                  });
-
-                  if (!isDuplicate) {
-                    var content = `
-                      <div style="font-size: 16px; line-height: 1; filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.3)); cursor: default; user-select: none;">
-                        ${target.emoji}
-                      </div>
-                    `;
-
-                    var customOverlay = new kakao.maps.CustomOverlay({
-                      position: placeLatLng,
-                      content: content,
-                      xAnchor: 0.5,
-                      yAnchor: 0.5,
-                    });
-
-                    customOverlay.setMap(map);
-                    subMarkers.push(customOverlay);
-                  }
-                }
-              });
-
-              // [핵심 추가] 다음 페이지 결과가 더 있다면(최대 3페이지, 45개까지) 자동으로 이어서 검색!
-              if (pagination.hasNextPage) {
-                pagination.nextPage();
-              }
-            }
-          };
-
-          // 검색 실행
-          if (target.type === "category") {
-            ps.categorySearch(target.code, callback, searchOptions);
-          } else {
-            ps.keywordSearch(target.code, callback, searchOptions);
-          }
-        });
-      }
-
-      function toggleDrawing(status) {
-        isDrawing = status;
-        if (status) {
-          document.body.classList.add("draw-mode");
-          resetDrawing();
-          closeSidebar();
-        } else {
-          document.body.classList.remove("draw-mode");
-        }
-      }
-
-      function resetDrawing() {
-        if (clickline) clickline.setMap(null);
-        if (moveLine) moveLine.setMap(null);
-        if (startMarker) startMarker.setMap(null);
-        drawingPoints = [];
-        clickline = null;
-        moveLine = null;
-        startMarker = null;
-      }
-
-      // 지도 빈 곳 클릭 리스너
-      kakao.maps.event.addListener(map, "click", function () {
-        if (!isDrawing && !isPolygonClicked) {
-          closeSidebar();
-          clearSubMarkers(); // [수정] 빈 지도 클릭 시 켜져 있던 미니 이모지도 함께 숨김
-        }
-        isPolygonClicked = false;
-      });
-
-      kakao.maps.event.addListener(map, "mousedown", function (mouseEvent) {
-        if (!isDrawing) return;
-        var latlng = mouseEvent.latLng;
-        if (drawingPoints.length > 2) {
-          var startP = drawingPoints[0];
-          var dist = Math.sqrt(
-            Math.pow(startP.getLat() - latlng.getLat(), 2) +
-              Math.pow(startP.getLng() - latlng.getLng(), 2),
-          );
-          if (dist < 0.001) {
-            finishDrawing();
-            return;
-          }
-        }
-        addPoint(latlng);
-      });
-
-      function addPoint(latlng) {
-        drawingPoints.push(latlng);
-        if (drawingPoints.length === 1) {
-          startMarker = new kakao.maps.Circle({
-            center: latlng,
-            radius: 4,
-            strokeWeight: 1,
-            strokeColor: "#f00",
-            fillColor: "#f00",
-            fillOpacity: 1,
-            map: map,
-            zIndex: 100,
-          });
-        }
-        if (!clickline) {
-          clickline = new kakao.maps.Polyline({
-            map: map,
-            path: [latlng],
-            strokeWeight: 3,
-            strokeColor: "#3498db",
-          });
-          moveLine = new kakao.maps.Polyline({
-            map: map,
-            path: [latlng, latlng],
-            strokeWeight: 2,
-            strokeColor: "#3498db",
-            strokeStyle: "dash",
-          });
-        } else {
-          clickline.setPath(drawingPoints);
-        }
-      }
-
-      kakao.maps.event.addListener(map, "mousemove", function (mouseEvent) {
-        if (isDrawing && drawingPoints.length > 0) {
-          moveLine.setPath([
-            drawingPoints[drawingPoints.length - 1],
-            mouseEvent.latLng,
-          ]);
-        }
-      });
-
-      function finishDrawing() {
-        var polygon = new kakao.maps.Polygon({
-          map: map,
-          path: drawingPoints,
-          strokeWeight: 3,
-          strokeColor: "#e74c3c",
-          fillColor: "#e74c3c",
-          fillOpacity: 0.3,
-          zIndex: 10,
-          clickable: true,
-        });
-        polygon.myData = { name: "", desc: "", saved: false };
-
-        var internalHandler = function (e) {
-          if (e.preventMap) e.preventMap();
-          if (e.domEvent && e.domEvent.stopPropagation)
-            e.domEvent.stopPropagation();
-          isPolygonClicked = true;
-          openSidebar(polygon);
-
-          // [수정] 기생성된 폴리곤 클릭 시 내부 편·약·빨 레이더 가동
-          scanFacilitiesInPolygon(polygon);
-        };
-
-        kakao.maps.event.addListener(polygon, "mousedown", internalHandler);
-        kakao.maps.event.addListener(polygon, "click", internalHandler);
-        kakao.maps.event.addListener(polygon, "mouseover", function () {
-          mapContainer.classList.add("poly-hover");
-        });
-        kakao.maps.event.addListener(polygon, "mouseout", function () {
-          mapContainer.classList.remove("poly-hover");
-        });
-
-        isPolygonClicked = true;
-        openSidebar(polygon);
-
-        // [수정] 폴리곤을 처음 다 그려서 완성한 시점에도 즉시 편·약·빨 스캔 실행
-        scanFacilitiesInPolygon(polygon);
-
-        toggleDrawing(false);
-        resetDrawing();
-        setTimeout(() => {
-          isPolygonClicked = false;
-        }, 100);
-      }
-
-      function openSidebar(poly) {
-        activePolygon = poly;
-        document.getElementById("t_name").value = poly.myData.name;
-        document.getElementById("t_desc").value = poly.myData.desc;
-        var btnGroup = document.getElementById("button-group");
-        if (!poly.myData.saved) {
-          // [수정] 저장하기 옆에 취소 버튼 추가
-          btnGroup.innerHTML = `
-            <button class="btn-full save-color" onclick="saveData()">저장</button>
-            <button class="btn-full delete-color" onclick="cancelDrawing()">취소</button>
-        `;
-        } else {
-          btnGroup.innerHTML = `
-            <button class="btn-full edit-color" onclick="saveData()">수정</button>
-            <button class="btn-full delete-color" onclick="deletePolygon()">삭제</button>
-        `;
-        }
-        document.getElementById("sidebar").classList.add("open");
-      }
-
-      function closeSidebar() {
+      // 저장 시점에 DB에 스냅샷된 편의점/약국/빨래방을 이모지로 표출 (API 재호출 없음)
+      function renderCachedFacilities(facilities) {
         clearSubMarkers();
-        document.getElementById("sidebar").classList.remove("open");
-        activePolygon = null;
+        facilities.forEach(function (f) {
+          var content = `
+            <div style="font-size: 16px; line-height: 1; filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.3)); cursor: default; user-select: none;">
+              ${f.emoji}
+            </div>
+          `;
+          var customOverlay = new kakao.maps.CustomOverlay({
+            position: new kakao.maps.LatLng(f.lat, f.lng),
+            content: content,
+            xAnchor: 0.5,
+            yAnchor: 0.5,
+          });
+          customOverlay.setMap(map);
+          subMarkers.push(customOverlay);
+        });
       }
 
-      function saveData() {
-        if (!activePolygon) return;
-        var name = document.getElementById("t_name").value;
-        if (!name) {
-          alert("동네 이름을 입력해주세요!");
+      function buildFacilitySummary(facilities) {
+        var counts = {};
+        var order = [];
+        (facilities || []).forEach(function (f) {
+          if (!(f.type in counts)) {
+            order.push(f.type);
+            counts[f.type] = { emoji: f.emoji, count: 0 };
+          }
+          counts[f.type].count += 1;
+        });
+        return order
+          .map(function (type) {
+            return counts[type].emoji + " " + type + " " + counts[type].count;
+          })
+          .join("   ");
+      }
+
+      function openInfoPanel(name, desc, facilities) {
+        document.getElementById("info-name").textContent = name;
+        document.getElementById("info-facility-summary").textContent =
+          buildFacilitySummary(facilities);
+        document.getElementById("info-desc").textContent = desc || "";
+        document.getElementById("info-panel").classList.add("open");
+        renderCachedFacilities(facilities || []);
+      }
+
+      function closeInfoPanel() {
+        clearSubMarkers();
+        document.getElementById("info-panel").classList.remove("open");
+      }
+
+      // 현재 줌 레벨에 따라 폴리곤 ↔ 마커 표시를 전환
+      function updateNeighborhoodVisibility() {
+        var showPolygons = map.getLevel() <= NEIGHBORHOOD_ZOOM_THRESHOLD;
+        neighborhoods.forEach(function (n) {
+          n.polygon.setMap(showPolygons ? map : null);
+          n.marker.setMap(showPolygons ? null : map);
+        });
+      }
+
+      async function loadNeighborhoods() {
+        var { data, error } = await sb.from("neighborhoods").select("*");
+        if (error) {
+          console.error("동네 목록 로딩 실패:", error);
           return;
         }
-        activePolygon.myData.name = name;
-        activePolygon.myData.desc = document.getElementById("t_desc").value;
-        activePolygon.myData.saved = true;
-        activePolygon.setOptions({
-          strokeColor: "#2ecc71",
-          fillColor: "#2ecc71",
-          fillOpacity: 0.5,
-        });
-        alert("성공적으로 저장되었습니다.");
-        closeSidebar();
-      }
+        data.forEach(function (row) {
+          var path = row.polygon.map(function (p) {
+            return new kakao.maps.LatLng(p.lat, p.lng);
+          });
+          var bounds = new kakao.maps.LatLngBounds();
+          path.forEach(function (latlng) {
+            bounds.extend(latlng);
+          });
 
-      function deletePolygon() {
-        if (!activePolygon) return;
-        if (confirm("정말로 이 영역을 삭제하시겠습니까?")) {
-          activePolygon.setMap(null);
-          activePolygon = null;
-          alert("삭제되었습니다.");
-          closeSidebar();
+          var polygon = new kakao.maps.Polygon({
+            map: null,
+            path: path,
+            strokeWeight: 3,
+            strokeColor: "#2ecc71",
+            fillColor: "#2ecc71",
+            fillOpacity: 0.5,
+            zIndex: 10,
+            clickable: true,
+          });
+
+          var handler = function (e) {
+            if (e.preventMap) e.preventMap();
+            if (e.domEvent && e.domEvent.stopPropagation) e.domEvent.stopPropagation();
+            isPolygonClicked = true;
+            openInfoPanel(row.name, row.description, row.facilities);
+          };
+          kakao.maps.event.addListener(polygon, "mousedown", handler);
+          kakao.maps.event.addListener(polygon, "click", handler);
+          kakao.maps.event.addListener(polygon, "mouseover", function () {
+            mapContainer.classList.add("poly-hover");
+          });
+          kakao.maps.event.addListener(polygon, "mouseout", function () {
+            mapContainer.classList.remove("poly-hover");
+          });
+
+          // 축소 상태에서 보여줄 이름표 마커
+          var markerEl = document.createElement("div");
+          markerEl.textContent = "🏘️ " + row.name;
+          markerEl.style.cssText =
+            "background:white; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:bold; color:#2c3e50; box-shadow:0 2px 6px rgba(0,0,0,0.25); white-space:nowrap; cursor:pointer; border:2px solid #2ecc71;";
+          markerEl.addEventListener("click", function (e) {
+            e.stopPropagation();
+            isPolygonClicked = true;
+            map.setBounds(bounds);
+            updateNeighborhoodVisibility();
+            openInfoPanel(row.name, row.description, row.facilities);
+          });
+
+          var sw = bounds.getSouthWest();
+          var ne = bounds.getNorthEast();
+          var center = new kakao.maps.LatLng(
+            (sw.getLat() + ne.getLat()) / 2,
+            (sw.getLng() + ne.getLng()) / 2,
+          );
+
+          var marker = new kakao.maps.CustomOverlay({
+            position: center,
+            content: markerEl,
+            map: null,
+            yAnchor: 0.5,
+          });
+
+          neighborhoods.push({ polygon: polygon, marker: marker, bounds: bounds });
+        });
+        updateNeighborhoodVisibility();
+      }
+      loadNeighborhoods();
+
+      kakao.maps.event.addListener(map, "click", function () {
+        if (!isPolygonClicked) {
+          closeInfoPanel();
         }
-      }
-
-      function cancelDrawing() {
-        if (!activePolygon) return;
-
-        // 별도의 확인 창 없이 즉시 삭제하고 닫습니다. (실수 방지가 필요하면 confirm 추가)
-        activePolygon.setMap(null);
-        activePolygon = null;
-        closeSidebar();
-      }
-
-      // 지도의 줌 레벨이 변경될 때마다 실행되는 이벤트
-      kakao.maps.event.addListener(map, "zoom_changed", function () {
-        var level = map.getLevel();
-
-        // 기준 레벨 설정 (예: 5레벨보다 커지면(더 멀어지면) 숨김)
-        // 숫자가 커질수록 지도가 멀어집니다. 4~5 정도가 적당합니다.
-        var showMarkers = level <= 4;
-
-        Object.keys(brandData).forEach((brand) => {
-          var state = brandData[brand];
-
-          // 사용자가 버튼을 켜둔 상태(active: true)일 때만 제어
-          if (state.active) {
-            Object.values(state.markers).forEach((marker) => {
-              marker.setMap(showMarkers ? map : null);
-            });
-          }
-        });
+        isPolygonClicked = false;
       });
     </script>
   </body>
