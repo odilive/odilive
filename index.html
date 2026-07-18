@@ -11,11 +11,20 @@
       rel="stylesheet"
     />
     <style>
+      :root {
+        --brand-teal: #085e6a;
+        --brand-teal-dark: #06474f;
+        --brand-teal-tint: #eaf4f3;
+        --ink: #16282b;
+        --ink-soft: #4c6467;
+        --line: #dbe6e5;
+      }
+
       body {
         margin: 0;
         padding: 20px;
-        background-color: #f0f2f5;
-        color: #333;
+        background-color: #f2f6f6;
+        color: var(--ink);
         height: 100vh;
         display: flex;
         flex-direction: column;
@@ -41,15 +50,17 @@
         gap: 15px;
         margin-bottom: 20px;
         padding: 10px 5px;
-        border-bottom: 2px solid #3498db;
+        border-bottom: 2px solid var(--brand-teal);
         flex-shrink: 0;
       }
       .header h1 {
         margin: 0;
-        font-size: 24px;
+        font-size: clamp(15px, 4.5vw, 24px);
+        white-space: nowrap;
+        letter-spacing: -0.01em;
         font-family: "S-Core Dream", sans-serif;
         font-weight: 900;
-        color: #2c3e50;
+        color: var(--brand-teal-dark);
       }
 
       .controls {
@@ -71,9 +82,9 @@
       #map {
         width: 100%;
         flex: 1;
-        border-radius: 12px;
-        border: 1px solid #ced4da;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        box-shadow: 0 4px 16px rgba(8, 94, 106, 0.12);
       }
       .poly-hover {
         cursor: pointer !important;
@@ -84,24 +95,31 @@
         padding: 8px 15px;
         font-size: 13px;
         font-weight: bold;
+        letter-spacing: 0.01em;
         border: none;
-        border-radius: 6px;
+        border-radius: 20px;
         cursor: pointer;
-        transition: 0.2s;
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease,
+          opacity 0.15s ease;
         background: #fff;
-        border: 1px solid #ddd;
-        color: #777;
+        border: 1px solid var(--line);
+        color: var(--ink-soft);
+        box-shadow: 0 1px 3px rgba(8, 94, 106, 0.08);
         display: inline-flex;
         align-items: center;
         justify-content: center;
         white-space: nowrap;
       }
       .btn:hover {
-        opacity: 0.8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(8, 94, 106, 0.18);
       }
       .btn.active {
         color: white;
         border-color: transparent;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
       }
       .btn.daiso.active {
         background: #e5001a;
@@ -128,8 +146,8 @@
         height: 100vh;
         background: white;
         z-index: 9999;
-        padding: 30px;
-        box-shadow: -5px 0 20px rgba(0, 0, 0, 0.2);
+        padding: 32px 28px;
+        box-shadow: -5px 0 24px rgba(8, 94, 106, 0.16);
         transition: 0.3s ease-out;
         box-sizing: border-box;
       }
@@ -137,14 +155,33 @@
         right: 0;
       }
       #info-panel h3 {
-        margin: 0 0 15px;
-        font-size: 20px;
-        color: #2c3e50;
+        margin: 0 0 14px;
+        font-size: 19px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        color: var(--brand-teal-dark);
+      }
+      #info-facility-summary {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid var(--line);
+      }
+      #info-facility-summary span {
+        background: var(--brand-teal-tint);
+        color: var(--brand-teal-dark);
+        padding: 4px 11px;
+        border-radius: 20px;
+        font-size: 12.5px;
+        font-weight: bold;
+        white-space: nowrap;
       }
       #info-panel p {
         white-space: pre-wrap;
-        line-height: 1.6;
-        color: #555;
+        line-height: 1.7;
+        color: var(--ink-soft);
         font-size: 14px;
       }
       .close-btn {
@@ -155,7 +192,7 @@
         border: none;
         font-size: 24px;
         cursor: pointer;
-        color: #999;
+        color: #93a5a6;
       }
 
       @media (max-width: 600px) {
@@ -205,16 +242,7 @@
     <div id="info-panel">
       <button class="close-btn" onclick="closeInfoPanel()">&times;</button>
       <h3 id="info-name"></h3>
-      <div
-        id="info-facility-summary"
-        style="
-          display: flex;
-          gap: 12px;
-          margin-bottom: 15px;
-          font-size: 13px;
-          color: #555;
-        "
-      ></div>
+      <div id="info-facility-summary"></div>
       <p id="info-desc"></p>
     </div>
 
@@ -314,7 +342,7 @@
 
                       if (brand === "대형슈퍼" || brand === "도서관") {
                         var content = `
-                          <div style="padding:6px 10px; font-size:12px; font-weight:bold; color:#2c3e50; white-space:nowrap; text-align:center; font-family:sans-serif;">
+                          <div style="padding:6px 10px; font-size:12px; font-weight:bold; color:#06474f; white-space:nowrap; text-align:center; font-family:sans-serif;">
                             ${place.place_name}
                           </div>
                         `;
@@ -415,14 +443,22 @@
         });
         return order
           .map(function (type) {
-            return counts[type].emoji + " " + type + " " + counts[type].count;
+            return (
+              "<span>" +
+              counts[type].emoji +
+              " " +
+              type +
+              " " +
+              counts[type].count +
+              "</span>"
+            );
           })
-          .join("   ");
+          .join("");
       }
 
       function openInfoPanel(name, desc, facilities) {
         document.getElementById("info-name").textContent = name;
-        document.getElementById("info-facility-summary").textContent =
+        document.getElementById("info-facility-summary").innerHTML =
           buildFacilitySummary(facilities);
         document.getElementById("info-desc").textContent = desc || "";
         document.getElementById("info-panel").classList.add("open");
@@ -462,9 +498,9 @@
             map: null,
             path: path,
             strokeWeight: 3,
-            strokeColor: "#2ecc71",
-            fillColor: "#2ecc71",
-            fillOpacity: 0.5,
+            strokeColor: "#085e6a",
+            fillColor: "#085e6a",
+            fillOpacity: 0.45,
             zIndex: 10,
             clickable: true,
           });
@@ -488,7 +524,7 @@
           var markerEl = document.createElement("div");
           markerEl.textContent = "🏘️ " + row.name;
           markerEl.style.cssText =
-            "background:white; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:bold; color:#2c3e50; box-shadow:0 2px 6px rgba(0,0,0,0.25); white-space:nowrap; cursor:pointer; border:2px solid #2ecc71;";
+            "background:white; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:bold; color:#06474f; box-shadow:0 2px 8px rgba(8,94,106,0.25); white-space:nowrap; cursor:pointer; border:2px solid #085e6a;";
           markerEl.addEventListener("click", function (e) {
             e.stopPropagation();
             isPolygonClicked = true;
