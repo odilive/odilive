@@ -390,6 +390,24 @@
         rows="10"
         placeholder="이 동네의 특징이나 메모를 적어보세요."
       ></textarea>
+      <label
+        style="
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 15px;
+          font-size: 14px;
+          color: #2c3e50;
+          cursor: pointer;
+        "
+      >
+        <input
+          type="checkbox"
+          id="t_published"
+          style="width: auto; margin: 0"
+        />
+        이 동네를 공개하기 (체크 안 하면 나만 보이는 초안)
+      </label>
       <button
         id="btn-edit-boundary"
         onclick="toggleBoundaryEdit()"
@@ -946,7 +964,7 @@
           zIndex: 10,
           clickable: true,
         });
-        polygon.myData = { name: "", desc: "", saved: false };
+        polygon.myData = { name: "", desc: "", published: false, saved: false };
         attachPolygonEvents(polygon);
 
         isPolygonClicked = true;
@@ -988,6 +1006,7 @@
             name: row.name,
             desc: row.description || "",
             facilities: row.facilities || [],
+            published: row.published || false,
             saved: true,
           };
           attachPolygonEvents(polygon);
@@ -1000,6 +1019,7 @@
         activePolygon = poly;
         document.getElementById("t_name").value = poly.myData.name;
         document.getElementById("t_desc").value = poly.myData.desc;
+        document.getElementById("t_published").checked = !!poly.myData.published;
         var btnGroup = document.getElementById("button-group");
         var editBoundaryBtn = document.getElementById("btn-edit-boundary");
         if (!poly.myData.saved) {
@@ -1111,6 +1131,7 @@
           return;
         }
         var desc = document.getElementById("t_desc").value;
+        var published = document.getElementById("t_published").checked;
         var path = activePolygon.getPath().map(function (p) {
           return { lat: p.getLat(), lng: p.getLng() };
         });
@@ -1125,6 +1146,7 @@
           description: desc,
           polygon: path,
           facilities: facilities,
+          published: published,
         };
 
         var result;
@@ -1152,6 +1174,7 @@
         activePolygon.myData.name = name;
         activePolygon.myData.desc = desc;
         activePolygon.myData.facilities = facilities;
+        activePolygon.myData.published = published;
         activePolygon.myData.saved = true;
         activePolygon.myData.pendingRescan = false;
         activePolygon.setOptions({
