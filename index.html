@@ -344,6 +344,15 @@
         cursor: pointer;
         color: #93a5a6;
       }
+      .copy-btn {
+        position: absolute;
+        top: 24px;
+        right: 54px;
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+      }
 
       @media (max-width: 600px) {
         #info-panel {
@@ -394,6 +403,14 @@
 
     <div id="info-panel">
       <button class="close-btn" onclick="closeInfoPanel()">&times;</button>
+      <button
+        class="copy-btn"
+        id="btn-copy-link"
+        onclick="copyNeighborhoodLink()"
+        title="이 동네 링크 복사"
+      >
+        🔗
+      </button>
       <div id="info-scroll">
         <h3 id="info-name"></h3>
         <div id="info-tagline"></div>
@@ -659,7 +676,30 @@
           .join("");
       }
 
+      var currentRow = null; // 패널에 열려있는 동네 (링크 복사용)
+
+      function copyNeighborhoodLink() {
+        if (!currentRow) return;
+        var url =
+          location.origin + location.pathname + "?n=" + currentRow.id;
+        var btn = document.getElementById("btn-copy-link");
+        function done() {
+          btn.textContent = "✅";
+          setTimeout(function () {
+            btn.textContent = "🔗";
+          }, 1500);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(done, function () {
+            prompt("아래 주소를 복사하세요:", url);
+          });
+        } else {
+          prompt("아래 주소를 복사하세요:", url);
+        }
+      }
+
       function openInfoPanel(row) {
+        currentRow = row;
         document.getElementById("info-name").textContent = row.name;
         document.getElementById("info-tagline").textContent = row.tagline
           ? "“" + row.tagline + "”"
@@ -794,9 +834,28 @@
             yAnchor: 0.5,
           });
 
-          neighborhoods.push({ polygon: polygon, marker: marker, bounds: bounds });
+          neighborhoods.push({
+            id: row.id,
+            row: row,
+            polygon: polygon,
+            marker: marker,
+            bounds: bounds,
+          });
         });
         updateNeighborhoodVisibility();
+
+        // 고유 링크(?n=동네ID)로 접속 시 해당 동네로 이동 + 패널 오픈
+        var targetId = new URLSearchParams(location.search).get("n");
+        if (targetId) {
+          var target = neighborhoods.find(function (n) {
+            return n.id === targetId;
+          });
+          if (target) {
+            map.setBounds(target.bounds);
+            updateNeighborhoodVisibility();
+            openInfoPanel(target.row);
+          }
+        }
       }
       loadNeighborhoods();
 
