@@ -510,6 +510,7 @@
           active: true,
           markers: {},
           keywords: ["대형슈퍼"],
+          categories: ["MT1"], // 카카오 공식 '대형마트' 분류 (이마트·홈플러스·롯데마트·코스트코 등)
           btnId: "filter-ssm",
           icon: "ssm.png", // 카트 아이콘
         },
@@ -544,83 +545,85 @@
         Object.keys(brandData).forEach((brand) => {
           if (!brandData[brand].active) return;
 
-          brandData[brand].keywords.forEach((keyword) => {
-            ps.keywordSearch(
-              keyword,
-              function (data, status) {
-                if (status === kakao.maps.services.Status.OK) {
-                  data.forEach((place) => {
-                    var finalIcon = brandData[brand].icon;
+          // 키워드 검색과 카테고리 검색이 같은 결과 처리기를 공유 (place.id 기준으로 중복 방지)
+          var handleResults = function (data, status) {
+            if (status === kakao.maps.services.Status.OK) {
+              data.forEach((place) => {
+                var finalIcon = brandData[brand].icon;
 
-                    // 마커가 이미 생성되어 있지 않은 경우에만 새로 생성
-                    if (!brandData[brand].markers[place.id]) {
-                      var imageSize = new kakao.maps.Size(35, 35);
+                // 마커가 이미 생성되어 있지 않은 경우에만 새로 생성
+                if (!brandData[brand].markers[place.id]) {
+                  var imageSize = new kakao.maps.Size(35, 35);
 
-                      var markerImage = new kakao.maps.MarkerImage(
-                        finalIcon,
-                        imageSize,
-                      );
+                  var markerImage = new kakao.maps.MarkerImage(
+                    finalIcon,
+                    imageSize,
+                  );
 
-                      var marker = new kakao.maps.Marker({
-                        position: new kakao.maps.LatLng(place.y, place.x),
-                        image: markerImage,
-                        // 확대 상태면 보이고 아니면 숨김
-                        map: isZoomIn ? map : null,
-                        // ★ 브랜드 우선순위에 따라 겹침 순서 결정 ★
-                        zIndex: brandPriority[brand] || 10,
-                      });
-
-                      // ========================================================
-                      // ★ [기능 수정] 모든 브랜드 클릭 시 상세페이지 이동 기본 탑재 ★
-                      // ========================================================
-
-                      // 1. 대형슈퍼와 도서관만 '말풍선 호버링' 이벤트 추가
-                      if (brand === "대형슈퍼" || brand === "도서관") {
-                        var content = `
-                          <div style="padding:6px 10px; font-size:12px; font-weight:bold; color:#2c3e50; white-space:nowrap; text-align:center; font-family:sans-serif;">
-                            ${place.place_name}
-                          </div>
-                        `;
-
-                        // 마우스 올렸을 때: 말풍선 띄우기
-                        kakao.maps.event.addListener(
-                          marker,
-                          "mouseover",
-                          function () {
-                            infoWindow.setContent(content);
-                            infoWindow.open(map, marker);
-                          },
-                        );
-
-                        // 마우스 내렸을 때: 말풍선 닫기
-                        kakao.maps.event.addListener(
-                          marker,
-                          "mouseout",
-                          function () {
-                            infoWindow.close();
-                          },
-                        );
-                      }
-
-                      // 2. [공통] 모든 브랜드 마커 클릭 시 카카오맵 상세페이지 새 창으로 열기
-                      kakao.maps.event.addListener(
-                        marker,
-                        "click",
-                        function () {
-                          if (place.place_url) {
-                            window.open(place.place_url, "_blank");
-                          }
-                        },
-                      );
-                      // ========================================================
-
-                      brandData[brand].markers[place.id] = marker;
-                    }
+                  var marker = new kakao.maps.Marker({
+                    position: new kakao.maps.LatLng(place.y, place.x),
+                    image: markerImage,
+                    // 확대 상태면 보이고 아니면 숨김
+                    map: isZoomIn ? map : null,
+                    // ★ 브랜드 우선순위에 따라 겹침 순서 결정 ★
+                    zIndex: brandPriority[brand] || 10,
                   });
+
+                  // ========================================================
+                  // ★ [기능 수정] 모든 브랜드 클릭 시 상세페이지 이동 기본 탑재 ★
+                  // ========================================================
+
+                  // 1. 대형슈퍼와 도서관만 '말풍선 호버링' 이벤트 추가
+                  if (brand === "대형슈퍼" || brand === "도서관") {
+                    var content = `
+                      <div style="padding:6px 10px; font-size:12px; font-weight:bold; color:#2c3e50; white-space:nowrap; text-align:center; font-family:sans-serif;">
+                        ${place.place_name}
+                      </div>
+                    `;
+
+                    // 마우스 올렸을 때: 말풍선 띄우기
+                    kakao.maps.event.addListener(
+                      marker,
+                      "mouseover",
+                      function () {
+                        infoWindow.setContent(content);
+                        infoWindow.open(map, marker);
+                      },
+                    );
+
+                    // 마우스 내렸을 때: 말풍선 닫기
+                    kakao.maps.event.addListener(
+                      marker,
+                      "mouseout",
+                      function () {
+                        infoWindow.close();
+                      },
+                    );
+                  }
+
+                  // 2. [공통] 모든 브랜드 마커 클릭 시 카카오맵 상세페이지 새 창으로 열기
+                  kakao.maps.event.addListener(
+                    marker,
+                    "click",
+                    function () {
+                      if (place.place_url) {
+                        window.open(place.place_url, "_blank");
+                      }
+                    },
+                  );
+                  // ========================================================
+
+                  brandData[brand].markers[place.id] = marker;
                 }
-              },
-              { bounds: bounds },
-            );
+              });
+            }
+          };
+
+          brandData[brand].keywords.forEach((keyword) => {
+            ps.keywordSearch(keyword, handleResults, { bounds: bounds });
+          });
+          (brandData[brand].categories || []).forEach((code) => {
+            ps.categorySearch(code, handleResults, { bounds: bounds });
           });
         });
       }

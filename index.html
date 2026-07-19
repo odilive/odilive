@@ -291,6 +291,7 @@
           active: true,
           markers: {},
           keywords: ["대형슈퍼"],
+          categories: ["MT1"], // 카카오 공식 '대형마트' 분류 (이마트·홈플러스·롯데마트·코스트코 등)
           btnId: "filter-ssm",
           icon: "ssm.png",
         },
@@ -321,53 +322,55 @@
         Object.keys(brandData).forEach((brand) => {
           if (!brandData[brand].active) return;
 
-          brandData[brand].keywords.forEach((keyword) => {
-            ps.keywordSearch(
-              keyword,
-              function (data, status) {
-                if (status === kakao.maps.services.Status.OK) {
-                  data.forEach((place) => {
-                    var finalIcon = brandData[brand].icon;
+          // 키워드 검색과 카테고리 검색이 같은 결과 처리기를 공유 (place.id 기준으로 중복 방지)
+          var handleResults = function (data, status) {
+            if (status === kakao.maps.services.Status.OK) {
+              data.forEach((place) => {
+                var finalIcon = brandData[brand].icon;
 
-                    if (!brandData[brand].markers[place.id]) {
-                      var imageSize = new kakao.maps.Size(35, 35);
-                      var markerImage = new kakao.maps.MarkerImage(finalIcon, imageSize);
+                if (!brandData[brand].markers[place.id]) {
+                  var imageSize = new kakao.maps.Size(35, 35);
+                  var markerImage = new kakao.maps.MarkerImage(finalIcon, imageSize);
 
-                      var marker = new kakao.maps.Marker({
-                        position: new kakao.maps.LatLng(place.y, place.x),
-                        image: markerImage,
-                        map: isZoomIn ? map : null,
-                        zIndex: brandPriority[brand] || 10,
-                      });
+                  var marker = new kakao.maps.Marker({
+                    position: new kakao.maps.LatLng(place.y, place.x),
+                    image: markerImage,
+                    map: isZoomIn ? map : null,
+                    zIndex: brandPriority[brand] || 10,
+                  });
 
-                      if (brand === "대형슈퍼" || brand === "도서관") {
-                        var content = `
-                          <div style="padding:6px 10px; font-size:12px; font-weight:bold; color:#06474f; white-space:nowrap; text-align:center; font-family:sans-serif;">
-                            ${place.place_name}
-                          </div>
-                        `;
-                        kakao.maps.event.addListener(marker, "mouseover", function () {
-                          infoWindow.setContent(content);
-                          infoWindow.open(map, marker);
-                        });
-                        kakao.maps.event.addListener(marker, "mouseout", function () {
-                          infoWindow.close();
-                        });
-                      }
+                  if (brand === "대형슈퍼" || brand === "도서관") {
+                    var content = `
+                      <div style="padding:6px 10px; font-size:12px; font-weight:bold; color:#06474f; white-space:nowrap; text-align:center; font-family:sans-serif;">
+                        ${place.place_name}
+                      </div>
+                    `;
+                    kakao.maps.event.addListener(marker, "mouseover", function () {
+                      infoWindow.setContent(content);
+                      infoWindow.open(map, marker);
+                    });
+                    kakao.maps.event.addListener(marker, "mouseout", function () {
+                      infoWindow.close();
+                    });
+                  }
 
-                      kakao.maps.event.addListener(marker, "click", function () {
-                        if (place.place_url) {
-                          window.open(place.place_url, "_blank");
-                        }
-                      });
-
-                      brandData[brand].markers[place.id] = marker;
+                  kakao.maps.event.addListener(marker, "click", function () {
+                    if (place.place_url) {
+                      window.open(place.place_url, "_blank");
                     }
                   });
+
+                  brandData[brand].markers[place.id] = marker;
                 }
-              },
-              { bounds: bounds },
-            );
+              });
+            }
+          };
+
+          brandData[brand].keywords.forEach((keyword) => {
+            ps.keywordSearch(keyword, handleResults, { bounds: bounds });
+          });
+          (brandData[brand].categories || []).forEach((code) => {
+            ps.categorySearch(code, handleResults, { bounds: bounds });
           });
         });
       }
