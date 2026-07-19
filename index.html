@@ -72,6 +72,20 @@
         overflow-x: auto;
       }
 
+      #theme-select {
+        margin-left: auto;
+        flex-shrink: 0;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: bold;
+        padding: 8px 12px;
+        border-radius: 20px;
+        border: 2px solid var(--brand-teal);
+        color: var(--brand-teal-dark);
+        background: #fff;
+        cursor: pointer;
+      }
+
       .btn-logo {
         height: 18px;
         width: auto;
@@ -132,9 +146,6 @@
       }
       .btn.ssm.active {
         background: #f39c12;
-      }
-      .btn.library.active {
-        background: #2b5c8f;
       }
 
       /* 상세 정보 패널 (PC: 오른쪽 슬라이드, 모바일: 하단 바텀시트) */
@@ -232,9 +243,11 @@
       <button id="filter-ssm" class="btn ssm active" onclick="toggleBrand('대형슈퍼')">
         <img src="ssm.png" alt="대형슈퍼" class="btn-logo" /> &nbsp;대형슈퍼
       </button>
-      <button id="filter-library" class="btn library active" onclick="toggleBrand('도서관')">
-        <img src="library.png" alt="도서관" class="btn-logo" /> &nbsp;도서관
-      </button>
+      <select id="theme-select" onchange="onThemeChange()">
+        <option value="">🧭 테마 선택</option>
+        <option value="혼밥">🍚 혼밥 지도</option>
+        <option value="공부">✏️ 공부 지도</option>
+      </select>
     </div>
 
     <div id="map"></div>
@@ -295,13 +308,6 @@
           btnId: "filter-ssm",
           icon: "ssm.png",
         },
-        도서관: {
-          active: true,
-          markers: {},
-          keywords: ["국공립도서관"],
-          btnId: "filter-library",
-          icon: "library.png",
-        },
       };
 
       var infoWindow = new kakao.maps.InfoWindow({ zIndex: 999 });
@@ -316,7 +322,6 @@
           다이소: 90,
           스타벅스: 80,
           올리브영: 70,
-          도서관: 60,
         };
 
         Object.keys(brandData).forEach((brand) => {
@@ -339,7 +344,7 @@
                     zIndex: brandPriority[brand] || 10,
                   });
 
-                  if (brand === "대형슈퍼" || brand === "도서관") {
+                  if (brand === "대형슈퍼") {
                     var content = `
                       <div style="padding:6px 10px; font-size:12px; font-weight:bold; color:#06474f; white-space:nowrap; text-align:center; font-family:sans-serif;">
                         ${place.place_name}
@@ -562,6 +567,86 @@
         }
         isPolygonClicked = false;
       });
+
+      // ══════════════ 큐레이션 테마 레이어 ══════════════
+      var CATEGORY_EMOJI = {
+        밥: "🍚",
+        커피: "☕",
+        간식: "🍡",
+        카페: "☕",
+        도서관: "📚",
+        열린공간: "🏛️",
+      };
+      var themePins = [];
+      var themeInfoWindow = new kakao.maps.InfoWindow({
+        zIndex: 1000,
+        removable: true,
+      });
+
+      function clearThemePins() {
+        themePins.forEach(function (p) {
+          p.setMap(null);
+        });
+        themePins = [];
+        themeInfoWindow.close();
+      }
+
+      async function onThemeChange() {
+        var theme = document.getElementById("theme-select").value;
+        clearThemePins();
+        if (!theme) return;
+
+        var { data, error } = await sb
+          .from("curated_places")
+          .select("*")
+          .eq("layer", theme);
+        if (error) {
+          console.error("큐레이션 로딩 실패:", error);
+          return;
+        }
+        data.forEach(function (place) {
+          var emoji = CATEGORY_EMOJI[place.category] || "📌";
+          var el = document.createElement("div");
+          el.textContent = emoji + " " + place.name;
+          el.style.cssText =
+            "background:#085e6a; color:white; padding:5px 12px; border-radius:16px; font-size:12.5px; font-weight:bold; white-space:nowrap; cursor:pointer; box-shadow:0 2px 8px rgba(8,94,106,0.4);";
+
+          var position = new kakao.maps.LatLng(place.lat, place.lng);
+          el.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var html =
+              '<div style="padding:12px 15px; font-family:inherit; max-width:230px;">' +
+              '<div style="font-weight:bold; font-size:14px; color:#06474f; margin-bottom:4px;">' +
+              emoji +
+              " " +
+              place.name +
+              "</div>" +
+              (place.comment
+                ? '<div style="font-size:12.5px; color:#555; line-height:1.5; margin-bottom:6px;">' +
+                  place.comment +
+                  "</div>"
+                : "") +
+              (place.link
+                ? '<a href="' +
+                  place.link +
+                  '" target="_blank" style="font-size:12px; color:#085e6a; font-weight:bold;">카카오맵에서 보기 →</a>'
+                : "") +
+              "</div>";
+            themeInfoWindow.setContent(html);
+            themeInfoWindow.setPosition(position);
+            themeInfoWindow.open(map);
+          });
+
+          var overlay = new kakao.maps.CustomOverlay({
+            position: position,
+            content: el,
+            map: map, // 큐레이션 배지는 모든 줌 레벨에서 표시
+            yAnchor: 1.2,
+            zIndex: 50,
+          });
+          themePins.push(overlay);
+        });
+      }
     </script>
   </body>
 </html>

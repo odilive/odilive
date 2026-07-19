@@ -161,7 +161,8 @@
         background: #2b5c8f; /* 도서관 딥블루 */
       }
 
-      #sidebar {
+      #sidebar,
+      #curation-panel {
         position: fixed;
         top: 0;
         right: -400px;
@@ -176,8 +177,67 @@
         display: flex;
         flex-direction: column;
       }
-      #sidebar.open {
+      #sidebar.open,
+      #curation-panel.open {
         right: 0;
+      }
+      #curation-panel {
+        overflow-y: auto;
+      }
+      #curation-panel h3 {
+        margin: 0 0 15px;
+      }
+      #curation-panel select {
+        font-family: inherit;
+        width: 100%;
+        margin-bottom: 10px;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-sizing: border-box;
+        font-size: 14px;
+        background: #fff;
+      }
+      #cp_results {
+        margin: -5px 0 10px;
+      }
+      #cp_results .cp-result {
+        padding: 8px 10px;
+        border: 1px solid #eee;
+        border-radius: 6px;
+        margin-bottom: 5px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      #cp_results .cp-result:hover {
+        background: #f4faf9;
+        border-color: #085e6a;
+      }
+      #cp_results .cp-result small {
+        color: #999;
+        display: block;
+      }
+      #cp_list {
+        margin-top: 15px;
+        border-top: 1px solid #eee;
+        padding-top: 10px;
+      }
+      #cp_list .cp-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 7px 8px;
+        border-radius: 6px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      #cp_list .cp-item:hover {
+        background: #f4faf9;
+      }
+      #cp_list .cp-item .cp-draft {
+        color: #e67e22;
+        font-size: 11px;
+        margin-left: 6px;
       }
       .close-btn {
         position: absolute;
@@ -370,6 +430,14 @@
       >
         ◀ 마지막 점 취소
       </button>
+      <button
+        id="btnCuration"
+        class="btn btn-export"
+        style="margin-right: 8px"
+        onclick="toggleCurationPanel()"
+      >
+        📌 큐레이션 관리
+      </button>
       <button id="btnStart" class="btn btn-start" onclick="toggleDrawing(true)">
         📍 새 동네 영역 그리기
       </button>
@@ -429,6 +497,75 @@
         경계 수정
       </button>
       <div id="button-group"></div>
+    </div>
+
+    <div id="curation-panel">
+      <button class="close-btn" onclick="toggleCurationPanel()">&times;</button>
+      <h3>📌 큐레이션 장소</h3>
+      <select id="cp_layer" onchange="cpUpdateCategoryOptions()"></select>
+      <select id="cp_category"></select>
+      <input
+        type="text"
+        id="cp_search"
+        placeholder="장소 검색 (카카오맵에서 찾기)"
+        onkeydown="if(event.key==='Enter')cpSearch()"
+      />
+      <div id="cp_results"></div>
+      <button
+        id="cp_pin_mode"
+        class="btn-full"
+        style="
+          background: #fff;
+          border: 2px dashed #085e6a;
+          color: #085e6a;
+          margin-bottom: 10px;
+          font-size: 13px;
+          padding: 10px;
+          width: 100%;
+          box-sizing: border-box;
+        "
+        onclick="cpTogglePinMode()"
+      >
+        🗺️ 검색이 안 되는 곳: 지도에서 직접 찍기
+      </button>
+      <input type="text" id="cp_name" placeholder="장소 이름" />
+      <input type="text" id="cp_comment" placeholder="한줄평 (예: 밤 10시까지, 콘센트 많음)" />
+      <input type="text" id="cp_link" placeholder="링크 (선택, 자동 입력됨)" />
+      <label
+        style="
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+          font-size: 14px;
+          color: #2c3e50;
+          cursor: pointer;
+        "
+      >
+        <input type="checkbox" id="cp_published" style="width: auto; margin: 0" />
+        공개하기
+      </label>
+      <div style="display: flex; gap: 8px">
+        <button class="btn-full save-color" onclick="cpSave()" id="cp_save_btn">
+          저장
+        </button>
+        <button
+          class="btn-full delete-color"
+          onclick="cpDelete()"
+          id="cp_delete_btn"
+          style="display: none"
+        >
+          삭제
+        </button>
+        <button
+          class="btn-full"
+          style="background: #eee; color: #555"
+          onclick="cpClear()"
+        >
+          새로
+        </button>
+      </div>
+      <div id="cp_list"></div>
     </div>
 
     <script
@@ -1237,6 +1374,305 @@
           }
         });
       });
+
+      // ══════════════ 큐레이션 장소 관리 ══════════════
+      var LAYER_CATEGORIES = {
+        혼밥: ["밥", "커피", "간식"],
+        공부: ["도서관", "카페", "열린공간"],
+      };
+      var CATEGORY_EMOJI = {
+        밥: "🍚",
+        커피: "☕",
+        간식: "🍡",
+        카페: "☕",
+        도서관: "📚",
+        열린공간: "🏛️",
+      };
+
+      var curatedPlaces = []; // DB에서 불러온 전체 목록
+      var cpPins = []; // 지도에 띄운 배지 오버레이들
+      var cpPreviewMarker = null; // 등록 위치 미리보기 마커
+      var cpSelected = { lat: null, lng: null }; // 등록할 좌표
+      var cpEditingId = null; // 수정 중인 장소 id
+      var isPlacingPin = false; // 지도 직접 찍기 모드
+
+      function cpInitSelectors() {
+        var layerSel = document.getElementById("cp_layer");
+        layerSel.innerHTML = Object.keys(LAYER_CATEGORIES)
+          .map(function (l) {
+            return '<option value="' + l + '">' + l + " 레이어</option>";
+          })
+          .join("");
+        cpUpdateCategoryOptions();
+      }
+
+      function cpUpdateCategoryOptions() {
+        var layer = document.getElementById("cp_layer").value;
+        document.getElementById("cp_category").innerHTML = LAYER_CATEGORIES[layer]
+          .map(function (c) {
+            return (
+              '<option value="' + c + '">' + CATEGORY_EMOJI[c] + " " + c + "</option>"
+            );
+          })
+          .join("");
+      }
+
+      function toggleCurationPanel() {
+        var panel = document.getElementById("curation-panel");
+        if (panel.classList.contains("open")) {
+          panel.classList.remove("open");
+          cpExitPinMode();
+          cpClearPins();
+          cpClearPreview();
+        } else {
+          closeSidebar();
+          panel.classList.add("open");
+          cpLoadPlaces();
+        }
+      }
+
+      async function cpLoadPlaces() {
+        var { data, error } = await sb
+          .from("curated_places")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (error) {
+          alert("큐레이션 목록 로딩 실패: " + error.message);
+          return;
+        }
+        curatedPlaces = data;
+        cpRenderPins();
+        cpRenderList();
+      }
+
+      function cpClearPins() {
+        cpPins.forEach(function (p) {
+          p.setMap(null);
+        });
+        cpPins = [];
+      }
+
+      function cpRenderPins() {
+        cpClearPins();
+        curatedPlaces.forEach(function (place) {
+          var el = document.createElement("div");
+          el.textContent =
+            (CATEGORY_EMOJI[place.category] || "📌") + " " + place.name;
+          el.style.cssText =
+            "background:#085e6a; color:white; padding:4px 10px; border-radius:14px; font-size:12px; font-weight:bold; white-space:nowrap; cursor:pointer; box-shadow:0 2px 6px rgba(8,94,106,0.4);" +
+            (place.published ? "" : "opacity:0.55;");
+          el.addEventListener("click", function (e) {
+            e.stopPropagation();
+            cpEdit(place.id);
+          });
+          var overlay = new kakao.maps.CustomOverlay({
+            position: new kakao.maps.LatLng(place.lat, place.lng),
+            content: el,
+            map: map,
+            yAnchor: 1.2,
+          });
+          cpPins.push(overlay);
+        });
+      }
+
+      function cpRenderList() {
+        var listEl = document.getElementById("cp_list");
+        if (curatedPlaces.length === 0) {
+          listEl.innerHTML =
+            '<div style="color:#999; font-size:13px">등록된 장소가 없습니다.</div>';
+          return;
+        }
+        listEl.innerHTML = curatedPlaces
+          .map(function (p) {
+            return (
+              '<div class="cp-item" onclick="cpEdit(\'' + p.id + '\')">' +
+              "<span>" +
+              (CATEGORY_EMOJI[p.category] || "📌") +
+              " " +
+              p.name +
+              '<span style="color:#aaa"> · ' +
+              p.layer +
+              "</span>" +
+              (p.published ? "" : '<span class="cp-draft">초안</span>') +
+              "</span></div>"
+            );
+          })
+          .join("");
+      }
+
+      function cpSearch() {
+        var query = document.getElementById("cp_search").value.trim();
+        if (!query) return;
+        ps.keywordSearch(
+          query,
+          function (data, status) {
+            var resultsEl = document.getElementById("cp_results");
+            if (status !== kakao.maps.services.Status.OK) {
+              resultsEl.innerHTML =
+                '<div style="color:#999; font-size:13px">검색 결과가 없습니다.</div>';
+              return;
+            }
+            resultsEl.innerHTML = "";
+            data.slice(0, 7).forEach(function (place) {
+              var div = document.createElement("div");
+              div.className = "cp-result";
+              div.innerHTML =
+                place.place_name + "<small>" + place.address_name + "</small>";
+              div.addEventListener("click", function () {
+                cpSelectPlace(place);
+              });
+              resultsEl.appendChild(div);
+            });
+          },
+          { location: map.getCenter() },
+        );
+      }
+
+      function cpSelectPlace(place) {
+        document.getElementById("cp_name").value = place.place_name;
+        document.getElementById("cp_link").value = place.place_url || "";
+        cpSelected.lat = parseFloat(place.y);
+        cpSelected.lng = parseFloat(place.x);
+        document.getElementById("cp_results").innerHTML = "";
+        cpShowPreview();
+        map.setCenter(new kakao.maps.LatLng(cpSelected.lat, cpSelected.lng));
+      }
+
+      function cpShowPreview() {
+        cpClearPreview();
+        if (cpSelected.lat === null) return;
+        cpPreviewMarker = new kakao.maps.Marker({
+          position: new kakao.maps.LatLng(cpSelected.lat, cpSelected.lng),
+          map: map,
+          zIndex: 300,
+        });
+      }
+
+      function cpClearPreview() {
+        if (cpPreviewMarker) {
+          cpPreviewMarker.setMap(null);
+          cpPreviewMarker = null;
+        }
+      }
+
+      function cpTogglePinMode() {
+        if (isPlacingPin) {
+          cpExitPinMode();
+        } else {
+          isPlacingPin = true;
+          document.getElementById("cp_pin_mode").textContent =
+            "👆 지도를 클릭하세요 (다시 누르면 취소)";
+          document.body.classList.add("draw-mode");
+        }
+      }
+
+      function cpExitPinMode() {
+        isPlacingPin = false;
+        document.getElementById("cp_pin_mode").textContent =
+          "🗺️ 검색이 안 되는 곳: 지도에서 직접 찍기";
+        document.body.classList.remove("draw-mode");
+      }
+
+      // 직접 찍기 모드에서 지도 클릭 시 좌표 지정
+      kakao.maps.event.addListener(map, "click", function (mouseEvent) {
+        if (!isPlacingPin) return;
+        cpSelected.lat = mouseEvent.latLng.getLat();
+        cpSelected.lng = mouseEvent.latLng.getLng();
+        cpShowPreview();
+        cpExitPinMode();
+      });
+
+      async function cpSave() {
+        var name = document.getElementById("cp_name").value.trim();
+        if (!name) {
+          alert("장소 이름을 입력해주세요!");
+          return;
+        }
+        if (cpSelected.lat === null) {
+          alert("위치를 지정해주세요 (검색 또는 지도에서 직접 찍기).");
+          return;
+        }
+        var row = {
+          layer: document.getElementById("cp_layer").value,
+          category: document.getElementById("cp_category").value,
+          name: name,
+          lat: cpSelected.lat,
+          lng: cpSelected.lng,
+          comment: document.getElementById("cp_comment").value,
+          link: document.getElementById("cp_link").value,
+          published: document.getElementById("cp_published").checked,
+        };
+
+        var result;
+        if (cpEditingId) {
+          result = await sb
+            .from("curated_places")
+            .update(row)
+            .eq("id", cpEditingId);
+        } else {
+          result = await sb.from("curated_places").insert(row);
+        }
+        if (result.error) {
+          alert("저장 실패: " + result.error.message);
+          return;
+        }
+        alert("저장되었습니다.");
+        cpClear();
+        cpLoadPlaces();
+      }
+
+      function cpEdit(id) {
+        var place = curatedPlaces.find(function (p) {
+          return p.id === id;
+        });
+        if (!place) return;
+        cpEditingId = id;
+        document.getElementById("cp_layer").value = place.layer;
+        cpUpdateCategoryOptions();
+        document.getElementById("cp_category").value = place.category;
+        document.getElementById("cp_name").value = place.name;
+        document.getElementById("cp_comment").value = place.comment || "";
+        document.getElementById("cp_link").value = place.link || "";
+        document.getElementById("cp_published").checked = place.published;
+        cpSelected.lat = place.lat;
+        cpSelected.lng = place.lng;
+        cpShowPreview();
+        document.getElementById("cp_save_btn").textContent = "수정";
+        document.getElementById("cp_delete_btn").style.display = "block";
+        document.getElementById("curation-panel").scrollTop = 0;
+      }
+
+      async function cpDelete() {
+        if (!cpEditingId) return;
+        if (!confirm("이 장소를 삭제할까요?")) return;
+        var { error } = await sb
+          .from("curated_places")
+          .delete()
+          .eq("id", cpEditingId);
+        if (error) {
+          alert("삭제 실패: " + error.message);
+          return;
+        }
+        cpClear();
+        cpLoadPlaces();
+      }
+
+      function cpClear() {
+        cpEditingId = null;
+        cpSelected.lat = null;
+        cpSelected.lng = null;
+        document.getElementById("cp_name").value = "";
+        document.getElementById("cp_comment").value = "";
+        document.getElementById("cp_link").value = "";
+        document.getElementById("cp_search").value = "";
+        document.getElementById("cp_results").innerHTML = "";
+        document.getElementById("cp_published").checked = false;
+        document.getElementById("cp_save_btn").textContent = "저장";
+        document.getElementById("cp_delete_btn").style.display = "none";
+        cpClearPreview();
+      }
+
+      cpInitSelectors();
     </script>
   </body>
 </html>
