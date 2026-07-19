@@ -181,6 +181,7 @@
       #curation-panel.open {
         right: 0;
       }
+      #sidebar,
       #curation-panel {
         overflow-y: auto;
       }
@@ -453,11 +454,37 @@
         id="t_name"
         placeholder="동네 이름 (예: 성수동 카페거리)"
       />
+      <input
+        type="text"
+        id="t_tagline"
+        placeholder="한 줄 정의 (예: 여의도 인프라를 슬리퍼로 누리는 동네)"
+      />
+      <input
+        type="text"
+        id="t_transit"
+        placeholder="🚇 교통 (예: 2호선 낙성대역 · 강남 20분)"
+      />
+      <input
+        type="text"
+        id="t_price"
+        placeholder="💰 시세 (예: 원룸 월세 50~70 · 2026.7 기준)"
+      />
       <textarea
         id="t_desc"
-        rows="10"
+        rows="7"
         placeholder="이 동네의 특징이나 메모를 적어보세요."
       ></textarea>
+      <div id="amenity-grades" style="margin-bottom: 15px"></div>
+      <input
+        type="text"
+        id="t_youtube"
+        placeholder="▶ 유튜브 답사 영상 링크 (선택)"
+      />
+      <input
+        type="text"
+        id="t_blog"
+        placeholder="📝 블로그 소개글 링크 (선택)"
+      />
       <label
         style="
           display: flex;
@@ -1104,7 +1131,13 @@
           zIndex: 10,
           clickable: true,
         });
-        polygon.myData = { name: "", desc: "", published: false, saved: false };
+        polygon.myData = {
+          name: "",
+          desc: "",
+          amenities: {},
+          published: false,
+          saved: false,
+        };
         attachPolygonEvents(polygon);
 
         isPolygonClicked = true;
@@ -1144,8 +1177,14 @@
           polygon.myData = {
             id: row.id,
             name: row.name,
+            tagline: row.tagline || "",
             desc: row.description || "",
             facilities: row.facilities || [],
+            amenities: row.amenities || {},
+            transit: row.transit || "",
+            price: row.price || "",
+            youtube: row.youtube_url || "",
+            blog: row.blog_url || "",
             published: row.published || false,
             saved: true,
           };
@@ -1158,8 +1197,15 @@
         endBoundaryEdit(); // 다른 폴리곤을 열 때 이전 경계 수정 상태 정리
         activePolygon = poly;
         document.getElementById("t_name").value = poly.myData.name;
+        document.getElementById("t_tagline").value = poly.myData.tagline || "";
+        document.getElementById("t_transit").value = poly.myData.transit || "";
+        document.getElementById("t_price").value = poly.myData.price || "";
         document.getElementById("t_desc").value = poly.myData.desc;
+        document.getElementById("t_youtube").value = poly.myData.youtube || "";
+        document.getElementById("t_blog").value = poly.myData.blog || "";
         document.getElementById("t_published").checked = !!poly.myData.published;
+        amenityState = Object.assign({}, poly.myData.amenities || {});
+        renderAmenityGrades();
         var btnGroup = document.getElementById("button-group");
         var editBoundaryBtn = document.getElementById("btn-edit-boundary");
         if (!poly.myData.saved) {
@@ -1185,6 +1231,52 @@
         clearSubMarkers();
         document.getElementById("sidebar").classList.remove("open");
         activePolygon = null;
+      }
+
+      // ── 동네별 편의시설 ○/△/X 판정 (관리자가 직접 판단) ──
+      var AMENITY_ITEMS = ["다이소", "올리브영", "대형슈퍼"];
+      var GRADE_STYLE = {
+        O: "background:#085e6a; color:white; border-color:#085e6a;",
+        "△": "background:#e67e22; color:white; border-color:#e67e22;",
+        X: "background:#95a5a6; color:white; border-color:#95a5a6;",
+      };
+      var amenityState = {};
+
+      function renderAmenityGrades() {
+        var el = document.getElementById("amenity-grades");
+        el.innerHTML = AMENITY_ITEMS.map(function (item) {
+          var current = amenityState[item] || "";
+          var buttons = ["O", "△", "X"]
+            .map(function (g) {
+              var active = current === g ? GRADE_STYLE[g] : "background:#fff; color:#999; border-color:#ddd;";
+              return (
+                '<button type="button" onclick="setAmenityGrade(\'' +
+                item +
+                "','" +
+                g +
+                "')\" style=\"width:36px; padding:5px 0; margin-left:4px; border:1px solid; border-radius:6px; font-size:13px; font-weight:bold; cursor:pointer; " +
+                active +
+                '">' +
+                (g === "O" ? "○" : g === "X" ? "✕" : "△") +
+                "</button>"
+              );
+            })
+            .join("");
+          return (
+            '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">' +
+            '<span style="font-size:13px; font-weight:bold; color:#2c3e50;">' +
+            item +
+            "</span><span>" +
+            buttons +
+            "</span></div>"
+          );
+        }).join("");
+      }
+
+      function setAmenityGrade(item, grade) {
+        // 같은 버튼을 다시 누르면 선택 해제 (미입력 상태)
+        amenityState[item] = amenityState[item] === grade ? "" : grade;
+        renderAmenityGrades();
       }
 
       // [추가] 저장된 폴리곤의 꼭짓점을 드래그로 조정하는 경계 수정 모드
@@ -1281,11 +1373,28 @@
             ? lastScanFacilities
             : activePolygon.myData.facilities || [];
 
+        var amenities = {};
+        AMENITY_ITEMS.forEach(function (item) {
+          if (amenityState[item]) amenities[item] = amenityState[item];
+        });
+
+        var tagline = document.getElementById("t_tagline").value;
+        var transit = document.getElementById("t_transit").value;
+        var price = document.getElementById("t_price").value;
+        var youtube = document.getElementById("t_youtube").value;
+        var blog = document.getElementById("t_blog").value;
+
         var row = {
           name: name,
+          tagline: tagline,
           description: desc,
           polygon: path,
           facilities: facilities,
+          amenities: amenities,
+          transit: transit,
+          price: price,
+          youtube_url: youtube,
+          blog_url: blog,
           published: published,
         };
 
@@ -1312,8 +1421,14 @@
           activePolygon.myData.id = result.data.id;
         }
         activePolygon.myData.name = name;
+        activePolygon.myData.tagline = tagline;
         activePolygon.myData.desc = desc;
         activePolygon.myData.facilities = facilities;
+        activePolygon.myData.amenities = amenities;
+        activePolygon.myData.transit = transit;
+        activePolygon.myData.price = price;
+        activePolygon.myData.youtube = youtube;
+        activePolygon.myData.blog = blog;
         activePolygon.myData.published = published;
         activePolygon.myData.saved = true;
         activePolygon.myData.pendingRescan = false;

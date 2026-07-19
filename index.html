@@ -162,40 +162,152 @@
         position: fixed;
         top: 0;
         right: -400px;
-        width: 340px;
+        width: 390px;
         height: 100vh;
         background: white;
         z-index: 9999;
-        padding: 32px 28px;
+        padding: 32px 28px 20px;
         box-shadow: -5px 0 24px rgba(8, 94, 106, 0.16);
         transition: 0.3s ease-out;
         box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+      }
+      #info-scroll {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
       }
       #info-panel.open {
         right: 0;
       }
       #info-panel h3 {
-        margin: 0 0 14px;
+        margin: 0 0 6px;
         font-size: 19px;
         font-weight: 800;
         letter-spacing: -0.01em;
         color: var(--brand-teal-dark);
       }
-      #info-facility-summary {
+      #info-tagline {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--brand-teal);
+        margin-bottom: 16px;
+      }
+      #info-tagline:empty {
+        display: none;
+      }
+      #info-desc {
+        margin-bottom: 16px;
+      }
+      #info-desc .desc-heading {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--brand-teal-dark);
+        margin: 12px 0 3px;
+      }
+      #info-desc .desc-heading:first-child {
+        margin-top: 0;
+      }
+      #info-desc .desc-line {
+        font-size: 14px;
+        color: var(--ink-soft);
+        line-height: 1.7;
+      }
+      #info-specs {
+        margin-bottom: 16px;
+      }
+      #info-specs div {
+        display: flex;
+        gap: 10px;
+        font-size: 13px;
+        line-height: 1.6;
+        margin-bottom: 3px;
+      }
+      #info-specs .spec-label {
+        flex-shrink: 0;
+        width: 28px;
+        font-weight: bold;
+        color: var(--brand-teal);
+      }
+      #info-specs .spec-text {
+        color: var(--ink-soft);
+      }
+      #info-links {
         display: flex;
         gap: 8px;
-        flex-wrap: wrap;
-        margin-bottom: 18px;
-        padding-bottom: 18px;
-        border-bottom: 1px solid var(--line);
+        margin-top: 12px;
+        flex-shrink: 0;
       }
-      #info-facility-summary span {
-        background: var(--brand-teal-tint);
-        color: var(--brand-teal-dark);
-        padding: 4px 11px;
+      #info-links:empty {
+        display: none;
+      }
+      #info-links a {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: bold;
+        text-decoration: none;
+      }
+      #info-links a svg {
+        flex-shrink: 0;
+      }
+      #info-links .link-youtube {
+        background: #fdeaea;
+        color: #c0392b;
+      }
+      #info-links .link-blog {
+        background: #e7f7ee;
+        color: #059e4a;
+      }
+      #info-facts {
+        border-top: 1px solid var(--line);
+        padding-top: 16px;
+      }
+      #info-amenities {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+      #info-amenities:empty {
+        display: none;
+      }
+      #info-amenities span {
+        padding: 4px 10px;
         border-radius: 20px;
         font-size: 12.5px;
         font-weight: bold;
+        white-space: nowrap;
+      }
+      #info-amenities .grade-O {
+        background: var(--brand-teal-tint);
+        color: var(--brand-teal-dark);
+      }
+      #info-amenities .grade-half {
+        background: #fdf0e3;
+        color: #c76a15;
+      }
+      #info-amenities .grade-X {
+        background: #eef1f1;
+        color: #8a9a9b;
+      }
+      #info-facility-summary {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      #info-facility-summary span {
+        font-size: 13px;
+        color: var(--ink-soft);
         white-space: nowrap;
       }
       #info-panel p {
@@ -223,7 +335,6 @@
           width: 100%;
           height: auto;
           max-height: 60vh;
-          overflow-y: auto;
           border-radius: 16px 16px 0 0;
           box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.2);
         }
@@ -265,9 +376,17 @@
 
     <div id="info-panel">
       <button class="close-btn" onclick="closeInfoPanel()">&times;</button>
-      <h3 id="info-name"></h3>
-      <div id="info-facility-summary"></div>
-      <p id="info-desc"></p>
+      <div id="info-scroll">
+        <h3 id="info-name"></h3>
+        <div id="info-tagline"></div>
+        <div id="info-desc"></div>
+        <div id="info-specs"></div>
+        <div id="info-facts">
+          <div id="info-amenities"></div>
+          <div id="info-facility-summary"></div>
+        </div>
+      </div>
+      <div id="info-links"></div>
     </div>
 
     <script
@@ -450,38 +569,129 @@
         });
       }
 
+      // 편·약·빨 세 항목을 0개여도 항상 고정 표시
+      var FACILITY_TYPES = [
+        { type: "편의점", label: "편의점", emoji: "🏪" },
+        { type: "약국", label: "약국", emoji: "💊" },
+        { type: "셀프빨래방", label: "빨래방", emoji: "🧺" },
+      ];
+
       function buildFacilitySummary(facilities) {
-        var counts = {};
-        var order = [];
-        (facilities || []).forEach(function (f) {
-          if (!(f.type in counts)) {
-            order.push(f.type);
-            counts[f.type] = { emoji: f.emoji, count: 0 };
-          }
-          counts[f.type].count += 1;
-        });
-        return order
-          .map(function (type) {
+        return FACILITY_TYPES.map(function (ft) {
+          var count = (facilities || []).filter(function (f) {
+            return f.type === ft.type;
+          }).length;
+          return "<span>" + ft.emoji + " " + ft.label + " " + count + "</span>";
+        }).join("");
+      }
+
+      // 다이소/올리브영/대형슈퍼 ○/△/✕ 칩 (관리자가 직접 판정한 값)
+      function buildAmenityChips(amenities) {
+        var GRADE_DISPLAY = { O: "○", "△": "△", X: "✕" };
+        var GRADE_CLASS = { O: "grade-O", "△": "grade-half", X: "grade-X" };
+        var AMENITY_LOGO = {
+          다이소: "daiso.png",
+          올리브영: "olive.png",
+          대형슈퍼: "ssm.png",
+        };
+        return ["다이소", "올리브영", "대형슈퍼"]
+          .filter(function (item) {
+            return amenities && amenities[item];
+          })
+          .map(function (item) {
+            var g = amenities[item];
             return (
-              "<span>" +
-              counts[type].emoji +
+              '<span class="' +
+              GRADE_CLASS[g] +
+              '"><img src="' +
+              AMENITY_LOGO[item] +
+              '" alt="" style="height:15px; width:auto; vertical-align:-3px; margin-right:4px;">' +
+              item +
               " " +
-              type +
-              " " +
-              counts[type].count +
+              GRADE_DISPLAY[g] +
               "</span>"
             );
           })
           .join("");
       }
 
-      function openInfoPanel(name, desc, facilities) {
-        document.getElementById("info-name").textContent = name;
+      // [소제목] 으로 시작하는 줄을 굵은 소제목으로 렌더링
+      function renderDescription(text) {
+        function esc(s) {
+          return s
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+        }
+        return (text || "")
+          .split("\n")
+          .map(function (line) {
+            var m = line.match(/^\[(.+?)\]\s*(.*)$/);
+            if (m) {
+              return (
+                '<div class="desc-heading">' +
+                esc(m[1]) +
+                "</div>" +
+                (m[2] ? '<div class="desc-line">' + esc(m[2]) + "</div>" : "")
+              );
+            }
+            if (line.trim() === "") return "";
+            return '<div class="desc-line">' + esc(line) + "</div>";
+          })
+          .join("");
+      }
+
+      function openInfoPanel(row) {
+        document.getElementById("info-name").textContent = row.name;
+        document.getElementById("info-tagline").textContent = row.tagline
+          ? "“" + row.tagline + "”"
+          : "";
+        document.getElementById("info-desc").innerHTML = renderDescription(
+          row.description,
+        );
+
+        var specs = "";
+        if (row.transit)
+          specs +=
+            '<div><span class="spec-label">교통</span><span class="spec-text">' +
+            row.transit +
+            "</span></div>";
+        if (row.price)
+          specs +=
+            '<div><span class="spec-label">시세</span><span class="spec-text">' +
+            row.price +
+            "</span></div>";
+        document.getElementById("info-specs").innerHTML = specs;
+
+        document.getElementById("info-amenities").innerHTML =
+          buildAmenityChips(row.amenities);
         document.getElementById("info-facility-summary").innerHTML =
-          buildFacilitySummary(facilities);
-        document.getElementById("info-desc").textContent = desc || "";
+          buildFacilitySummary(row.facilities);
+
+        var YT_ICON =
+          '<svg width="17" height="17" viewBox="0 0 24 24"><path fill="#FF0000" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.4 31.4 0 0 0 0 12a31.4 31.4 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.4 31.4 0 0 0 24 12a31.4 31.4 0 0 0-.5-5.8z"/><path fill="#fff" d="M9.5 15.5v-7l6.3 3.5-6.3 3.5z"/></svg>';
+        var NAVER_ICON =
+          '<svg width="13" height="13" viewBox="0 0 20 20"><rect width="20" height="20" rx="3" fill="#03C75A"/><path fill="#fff" d="M11.35 10.25 8.5 6.19H5.81v7.62H8.5v-4.06l2.85 4.06h2.69V6.19h-2.69v4.06z"/></svg>';
+
+        var links = "";
+        if (row.youtube_url)
+          links +=
+            '<a class="link-youtube" href="' +
+            row.youtube_url +
+            '" target="_blank">' +
+            YT_ICON +
+            " 답사 영상</a>";
+        if (row.blog_url)
+          links +=
+            '<a class="link-blog" href="' +
+            row.blog_url +
+            '" target="_blank">' +
+            NAVER_ICON +
+            " 소개글 전문</a>";
+        document.getElementById("info-links").innerHTML = links;
+
         document.getElementById("info-panel").classList.add("open");
-        renderCachedFacilities(facilities || []);
+        renderCachedFacilities(row.facilities || []);
       }
 
       function closeInfoPanel() {
@@ -528,7 +738,7 @@
             if (e.preventMap) e.preventMap();
             if (e.domEvent && e.domEvent.stopPropagation) e.domEvent.stopPropagation();
             isPolygonClicked = true;
-            openInfoPanel(row.name, row.description, row.facilities);
+            openInfoPanel(row);
           };
           kakao.maps.event.addListener(polygon, "mousedown", handler);
           kakao.maps.event.addListener(polygon, "click", handler);
@@ -549,7 +759,7 @@
             isPolygonClicked = true;
             map.setBounds(bounds);
             updateNeighborhoodVisibility();
-            openInfoPanel(row.name, row.description, row.facilities);
+            openInfoPanel(row);
           });
 
           var sw = bounds.getSouthWest();
