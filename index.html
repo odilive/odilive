@@ -171,18 +171,7 @@
         background: var(--brand-teal-tint);
         color: var(--brand-teal-dark);
       }
-      #brand-panel .btn {
-        width: 100%;
-        box-sizing: border-box;
-        justify-content: flex-start;
-      }
 
-      .btn-logo {
-        height: 18px;
-        width: auto;
-        vertical-align: middle;
-        object-fit: contain;
-      }
 
       #map-wrap {
         position: relative;
@@ -199,50 +188,6 @@
       }
       .poly-hover {
         cursor: pointer !important;
-      }
-
-      .btn {
-        font-family: inherit;
-        padding: 8px 15px;
-        font-size: 13px;
-        font-weight: bold;
-        letter-spacing: 0.01em;
-        border: none;
-        border-radius: 20px;
-        cursor: pointer;
-        transition:
-          transform 0.15s ease,
-          box-shadow 0.15s ease,
-          opacity 0.15s ease;
-        background: #fff;
-        border: 1px solid var(--line);
-        color: var(--ink-soft);
-        box-shadow: 0 1px 3px rgba(8, 94, 106, 0.08);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        white-space: nowrap;
-      }
-      .btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 10px rgba(8, 94, 106, 0.18);
-      }
-      .btn.active {
-        color: white;
-        border-color: transparent;
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
-      }
-      .btn.daiso.active {
-        background: #e5001a;
-      }
-      .btn.olive.active {
-        background: #82dc28;
-      }
-      .btn.star.active {
-        background: #006241;
-      }
-      .btn.ssm.active {
-        background: #f39c12;
       }
 
       /* 상세 정보 패널 (PC: 오른쪽 슬라이드, 모바일: 하단 바텀시트) */
@@ -359,6 +304,7 @@
       }
       #info-amenities {
         display: flex;
+        justify-content: center;
         gap: 5px;
         flex-wrap: wrap;
         margin-bottom: 10px;
@@ -387,6 +333,7 @@
       }
       #info-facility-summary {
         display: flex;
+        justify-content: center;
         gap: 14px;
         flex-wrap: wrap;
         margin-bottom: 16px;
@@ -467,26 +414,9 @@
             </button>
           </div>
         </div>
-        <div class="ctrl-wrap">
-          <button class="ctrl-btn" id="brand-toggle-btn" onclick="toggleBrandPanel()">
-            <span>⭐ 자취 인프라</span>
-            <span class="ctrl-caret">▾</span>
-          </button>
-          <div class="ctrl-panel" id="brand-panel">
-            <button id="filter-daiso" class="btn daiso" onclick="toggleBrand('다이소')">
-              <img src="daiso.png" alt="다이소" class="btn-logo" /> &nbsp;다이소
-            </button>
-            <button id="filter-olive" class="btn olive" onclick="toggleBrand('올리브영')">
-              <img src="olive.png" alt="올리브영" class="btn-logo" /> &nbsp;올리브영
-            </button>
-            <button id="filter-star" class="btn star" onclick="toggleBrand('스타벅스')">
-              <img src="starbucks.png" alt="스타벅스" class="btn-logo" /> &nbsp;스타벅스
-            </button>
-            <button id="filter-ssm" class="btn ssm" onclick="toggleBrand('대형슈퍼')">
-              <img src="ssm.png" alt="대형슈퍼" class="btn-logo" /> &nbsp;대형슈퍼
-            </button>
-          </div>
-        </div>
+        <button class="ctrl-btn" id="brand-toggle-btn" onclick="toggleAllBrands()">
+          <span>⭐ 자취 인프라</span>
+        </button>
       </div>
     </div>
 
@@ -537,21 +467,18 @@
           active: false,
           markers: {},
           keywords: ["올리브영 드럭스토어"],
-          btnId: "filter-olive",
           icon: "olive.png",
         },
         다이소: {
           active: false,
           markers: {},
           keywords: ["다이소 생활용품점"],
-          btnId: "filter-daiso",
           icon: "daiso.png",
         },
         스타벅스: {
           active: false,
           markers: {},
           keywords: ["스타벅스 커피전문점"],
-          btnId: "filter-star",
           icon: "starbucks.png",
         },
         대형슈퍼: {
@@ -559,7 +486,6 @@
           markers: {},
           keywords: ["대형슈퍼"],
           categories: ["MT1"], // 카카오 공식 '대형마트' 분류 (이마트·홈플러스·롯데마트·코스트코 등)
-          btnId: "filter-ssm",
           icon: "ssm.png",
         },
       };
@@ -635,7 +561,6 @@
       function toggleBrand(brand) {
         var state = brandData[brand];
         state.active = !state.active;
-        document.getElementById(state.btnId).classList.toggle("active");
         Object.values(state.markers).forEach((marker) => {
           marker.setMap(state.active ? map : null);
         });
@@ -653,29 +578,17 @@
           .classList.toggle("is-active", anyActive);
       }
 
-      // 버튼 자체는 "전부 켜짐 ↔ 전부 꺼짐" 마스터 스위치, 패널 안 체크박스는 개별 조정용
-      function toggleBrandPanel() {
-        document.getElementById("theme-panel").classList.remove("open");
-        var panel = document.getElementById("brand-panel");
+      // 다이소·올리브영·스벅·대형슈퍼를 "우리가 정한 인프라 세트"로 한 번에 켜고 끔
+      function toggleAllBrands() {
         var allActive = Object.keys(brandData).every(function (brand) {
           return brandData[brand].active;
         });
-
-        if (allActive) {
-          Object.keys(brandData).forEach(function (brand) {
-            if (brandData[brand].active) toggleBrand(brand);
-          });
-          panel.classList.remove("open");
-        } else {
-          Object.keys(brandData).forEach(function (brand) {
-            if (!brandData[brand].active) toggleBrand(brand);
-          });
-          panel.classList.add("open");
-        }
+        Object.keys(brandData).forEach(function (brand) {
+          if (allActive === brandData[brand].active) toggleBrand(brand);
+        });
       }
 
       function toggleThemePanel() {
-        document.getElementById("brand-panel").classList.remove("open");
         document.getElementById("theme-panel").classList.toggle("open");
       }
 
@@ -1081,7 +994,6 @@
           closeInfoPanel();
         }
         isPolygonClicked = false;
-        document.getElementById("brand-panel").classList.remove("open");
         document.getElementById("theme-panel").classList.remove("open");
         closeThemeCard();
       });
