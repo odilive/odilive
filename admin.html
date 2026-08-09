@@ -459,6 +459,11 @@
       />
       <input
         type="text"
+        id="t_station"
+        placeholder="🚇 역 (예: 낙성대역 — 축소 지도에서 이 역 기준으로 묶여 보임)"
+      />
+      <input
+        type="text"
         id="t_tagline"
         placeholder="한 줄 정의 (예: 여의도 인프라를 슬리퍼로 누리는 동네)"
       />
@@ -1189,6 +1194,7 @@
           polygon.myData = {
             id: row.id,
             name: row.name,
+            station: row.station || "",
             tagline: row.tagline || "",
             desc: row.description || "",
             facilities: row.facilities || [],
@@ -1209,6 +1215,7 @@
         endBoundaryEdit(); // 다른 폴리곤을 열 때 이전 경계 수정 상태 정리
         activePolygon = poly;
         document.getElementById("t_name").value = poly.myData.name;
+        document.getElementById("t_station").value = poly.myData.station || "";
         document.getElementById("t_tagline").value = poly.myData.tagline || "";
         document.getElementById("t_transit").value = poly.myData.transit || "";
         document.getElementById("t_price").value = poly.myData.price || "";
@@ -1390,6 +1397,7 @@
           if (amenityState[item]) amenities[item] = amenityState[item];
         });
 
+        var station = document.getElementById("t_station").value;
         var tagline = document.getElementById("t_tagline").value;
         var transit = document.getElementById("t_transit").value;
         var price = document.getElementById("t_price").value;
@@ -1398,6 +1406,7 @@
 
         var row = {
           name: name,
+          station: station,
           tagline: tagline,
           description: desc,
           polygon: path,
@@ -1433,6 +1442,7 @@
           activePolygon.myData.id = result.data.id;
         }
         activePolygon.myData.name = name;
+        activePolygon.myData.station = station;
         activePolygon.myData.tagline = tagline;
         activePolygon.myData.desc = desc;
         activePolygon.myData.facilities = facilities;
