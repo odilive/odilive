@@ -14,6 +14,13 @@
       rel="stylesheet"
     />
     <style>
+      :root {
+        --brand-teal: #085e6a;
+        --brand-teal-dark: #06474f;
+        --brand-teal-tint: #eaf4f3;
+        --line: #dbe6e5;
+      }
+
       /* [수정] 1. 사이트 전체 레이아웃 (body 단독 설정으로 복구) */
       body {
         margin: 0;
@@ -109,25 +116,29 @@
       /* 버튼들이 시스템 폰트로 튕기지 않고 프리텐다드를 따르도록 수정 */
       .btn {
         font-family: inherit;
-        padding: 12px 20px;
+        padding: 10px 18px;
         font-weight: bold;
         border: none;
-        border-radius: 6px;
+        border-radius: 20px;
         cursor: pointer;
-        transition: 0.2s;
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease,
+          opacity 0.15s ease;
+        box-shadow: 0 2px 10px rgba(8, 94, 106, 0.15);
       }
       .btn:hover {
-        opacity: 0.8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(8, 94, 106, 0.25);
       }
       .btn-start {
-        background: #3498db;
+        background: var(--brand-teal);
         color: white;
-        box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3);
         display: inline-flex;
         align-items: center;
       }
       .btn-export {
-        background: #2c3e50;
+        background: var(--brand-teal-dark);
         color: white;
       }
 
@@ -159,9 +170,6 @@
       }
       .filter.ssm.active {
         background: #f39c12; /* 대형슈퍼 오렌지 (기존 유지) */
-      }
-      .filter.library.active {
-        background: #2b5c8f; /* 도서관 딥블루 */
       }
 
       #sidebar,
@@ -416,13 +424,6 @@
           onclick="toggleBrand('대형슈퍼')"
         >
           <img src="ssm.png" alt="대형슈퍼" class="btn-logo" /> &nbsp;대형슈퍼
-        </button>
-        <button
-          id="filter-library"
-          class="btn filter library active"
-          onclick="toggleBrand('도서관')"
-        >
-          <img src="library.png" alt="도서관" class="btn-logo" /> &nbsp;도서관
         </button>
       </div>
 
@@ -686,13 +687,6 @@
           btnId: "filter-ssm",
           icon: "ssm.png", // 카트 아이콘
         },
-        도서관: {
-          active: true,
-          markers: {},
-          keywords: ["국공립도서관"],
-          btnId: "filter-library",
-          icon: "library.png",
-        },
       };
 
       // 인포윈도우를 담을 전역 변수
@@ -711,7 +705,6 @@
           다이소: 90,
           스타벅스: 80,
           올리브영: 70,
-          도서관: 60,
         };
 
         Object.keys(brandData).forEach((brand) => {
@@ -745,8 +738,8 @@
                   // ★ [기능 수정] 모든 브랜드 클릭 시 상세페이지 이동 기본 탑재 ★
                   // ========================================================
 
-                  // 1. 대형슈퍼와 도서관만 '말풍선 호버링' 이벤트 추가
-                  if (brand === "대형슈퍼" || brand === "도서관") {
+                  // 1. 대형슈퍼만 '말풍선 호버링' 이벤트 추가
+                  if (brand === "대형슈퍼") {
                     var content = `
                       <div style="padding:6px 10px; font-size:12px; font-weight:bold; color:#2c3e50; white-space:nowrap; text-align:center; font-family:sans-serif;">
                         ${place.place_name}
@@ -1116,6 +1109,9 @@
           if (e.domEvent && e.domEvent.stopPropagation)
             e.domEvent.stopPropagation();
           isPolygonClicked = true;
+          setTimeout(function () {
+            isPolygonClicked = false;
+          }, 100);
           openSidebar(polygon);
 
           if (polygon.myData.saved) {
