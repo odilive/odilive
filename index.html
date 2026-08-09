@@ -93,25 +93,50 @@
         gap: 8px;
       }
 
-      #theme-select,
-      #brand-toggle-btn {
+      .ctrl-wrap {
+        position: relative;
+      }
+
+      .ctrl-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         font-family: inherit;
         font-size: 13px;
         font-weight: bold;
-        padding: 8px 12px;
+        padding: 7px 14px;
         border-radius: 20px;
         border: 2px solid var(--brand-teal);
         color: var(--brand-teal-dark);
         background: #fff;
         cursor: pointer;
-        box-shadow: 0 2px 10px rgba(8, 94, 106, 0.25);
+        box-shadow: 0 2px 10px rgba(8, 94, 106, 0.2);
+        transition:
+          background 0.15s ease,
+          color 0.15s ease,
+          transform 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+      .ctrl-btn:hover {
+        background: var(--brand-teal-tint);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(8, 94, 106, 0.3);
+      }
+      .ctrl-btn.is-active,
+      .ctrl-btn.is-active:hover {
+        background: var(--brand-teal-dark);
+        border-color: var(--brand-teal-dark);
+        color: #fff;
+        box-shadow:
+          0 0 0 2px #fff inset,
+          0 4px 14px rgba(8, 94, 106, 0.5);
+      }
+      .ctrl-caret {
+        font-size: 9px;
+        opacity: 0.85;
       }
 
-      #brand-toggle-wrap {
-        position: relative;
-      }
-
-      #brand-panel {
+      .ctrl-panel {
         display: none;
         position: absolute;
         top: 100%;
@@ -119,14 +144,32 @@
         margin-top: 8px;
         background: #fff;
         border-radius: 12px;
-        padding: 10px;
-        box-shadow: 0 4px 16px rgba(8, 94, 106, 0.2);
+        padding: 8px;
+        box-shadow: 0 8px 24px rgba(8, 94, 106, 0.25);
         flex-direction: column;
-        gap: 6px;
-        min-width: 150px;
+        gap: 3px;
+        min-width: 160px;
+        z-index: 20;
       }
-      #brand-panel.open {
+      .ctrl-panel.open {
         display: flex;
+      }
+      .ctrl-option {
+        font-family: inherit;
+        text-align: left;
+        padding: 9px 10px;
+        border: none;
+        background: none;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink);
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+      .ctrl-option:hover {
+        background: var(--brand-teal-tint);
+        color: var(--brand-teal-dark);
       }
       #brand-panel .btn {
         width: 100%;
@@ -407,16 +450,29 @@
     <div id="map-wrap">
       <div id="map"></div>
       <div id="map-controls">
-        <select id="theme-select" onchange="onThemeChange()">
-          <option value="">🧭 테마 선택</option>
-          <option value="혼밥">🍚 혼밥 지도</option>
-          <option value="공부">✏️ 공부 지도</option>
-        </select>
-        <div id="brand-toggle-wrap">
-          <button id="brand-toggle-btn" onclick="toggleBrandPanel()">
-            🏪 브랜드
+        <div class="ctrl-wrap">
+          <button class="ctrl-btn" id="theme-toggle-btn" onclick="toggleThemePanel()">
+            <span id="theme-btn-label">🧭 테마 지도</span>
+            <span class="ctrl-caret">▾</span>
           </button>
-          <div id="brand-panel">
+          <div class="ctrl-panel" id="theme-panel">
+            <button class="ctrl-option" onclick="selectTheme('')">
+              🧭 테마 없음
+            </button>
+            <button class="ctrl-option" onclick="selectTheme('혼밥')">
+              🍚 혼밥 지도
+            </button>
+            <button class="ctrl-option" onclick="selectTheme('공부')">
+              ✏️ 공부 지도
+            </button>
+          </div>
+        </div>
+        <div class="ctrl-wrap">
+          <button class="ctrl-btn" id="brand-toggle-btn" onclick="toggleBrandPanel()">
+            <span>⭐ 자취 인프라</span>
+            <span class="ctrl-caret">▾</span>
+          </button>
+          <div class="ctrl-panel" id="brand-panel">
             <button id="filter-daiso" class="btn daiso" onclick="toggleBrand('다이소')">
               <img src="daiso.png" alt="다이소" class="btn-logo" /> &nbsp;다이소
             </button>
@@ -512,8 +568,6 @@
 
       function updateBrandMarkers() {
         var bounds = map.getBounds();
-        var level = map.getLevel();
-        var isZoomIn = level <= 5;
 
         var brandPriority = {
           대형슈퍼: 100,
@@ -538,7 +592,7 @@
                   var marker = new kakao.maps.Marker({
                     position: new kakao.maps.LatLng(place.y, place.x),
                     image: markerImage,
-                    map: isZoomIn ? map : null,
+                    map: map,
                     zIndex: brandPriority[brand] || 10,
                   });
 
@@ -586,24 +640,47 @@
           marker.setMap(state.active ? map : null);
         });
         if (state.active) updateBrandMarkers();
+        updateBrandToggleBtnState();
       }
 
+      // 하나라도 켜져있으면 "자취 인프라" 버튼 자체도 켜진 것으로 표시
+      function updateBrandToggleBtnState() {
+        var anyActive = Object.keys(brandData).some(function (brand) {
+          return brandData[brand].active;
+        });
+        document
+          .getElementById("brand-toggle-btn")
+          .classList.toggle("is-active", anyActive);
+      }
+
+      // 버튼 자체는 "전부 켜짐 ↔ 전부 꺼짐" 마스터 스위치, 패널 안 체크박스는 개별 조정용
       function toggleBrandPanel() {
-        document.getElementById("brand-panel").classList.toggle("open");
+        document.getElementById("theme-panel").classList.remove("open");
+        var panel = document.getElementById("brand-panel");
+        var allActive = Object.keys(brandData).every(function (brand) {
+          return brandData[brand].active;
+        });
+
+        if (allActive) {
+          Object.keys(brandData).forEach(function (brand) {
+            if (brandData[brand].active) toggleBrand(brand);
+          });
+          panel.classList.remove("open");
+        } else {
+          Object.keys(brandData).forEach(function (brand) {
+            if (!brandData[brand].active) toggleBrand(brand);
+          });
+          panel.classList.add("open");
+        }
+      }
+
+      function toggleThemePanel() {
+        document.getElementById("brand-panel").classList.remove("open");
+        document.getElementById("theme-panel").classList.toggle("open");
       }
 
       kakao.maps.event.addListener(map, "idle", updateBrandMarkers);
       kakao.maps.event.addListener(map, "zoom_changed", function () {
-        var level = map.getLevel();
-        var showMarkers = level <= 5;
-        Object.keys(brandData).forEach((brand) => {
-          var state = brandData[brand];
-          if (state.active) {
-            Object.values(state.markers).forEach((marker) => {
-              marker.setMap(showMarkers ? map : null);
-            });
-          }
-        });
         updateNeighborhoodVisibility();
       });
       updateBrandMarkers();
@@ -791,11 +868,17 @@
 
       var selectedNeighborhood = null; // 지금 폴리곤이 펼쳐져 보이는 동네 (한 번에 하나만)
 
+      var NAME_LABEL_STYLE =
+        "background:white; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:bold; color:#06474f; box-shadow:0 2px 6px rgba(8,94,106,0.3); white-space:nowrap; cursor:pointer; border:1.5px solid #085e6a;";
+      var NAME_LABEL_STYLE_SELECTED =
+        "background:#06474f; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:bold; color:#fff; box-shadow:0 0 0 2px #fff inset, 0 3px 10px rgba(8,94,106,0.5); white-space:nowrap; cursor:pointer; border:1.5px solid #06474f;";
+
       function closeInfoPanel() {
         clearSubMarkers();
         document.getElementById("info-panel").classList.remove("open");
         if (selectedNeighborhood) {
           selectedNeighborhood.polygon.setMap(null);
+          selectedNeighborhood.labelEl.style.cssText = NAME_LABEL_STYLE;
           selectedNeighborhood = null;
         }
       }
@@ -804,10 +887,15 @@
       function selectNeighborhood(n) {
         if (selectedNeighborhood && selectedNeighborhood !== n) {
           selectedNeighborhood.polygon.setMap(null);
+          selectedNeighborhood.labelEl.style.cssText = NAME_LABEL_STYLE;
         }
         selectedNeighborhood = n;
         n.polygon.setMap(map);
+        n.labelEl.style.cssText = NAME_LABEL_STYLE_SELECTED;
         isPolygonClicked = true;
+        setTimeout(function () {
+          isPolygonClicked = false;
+        }, 100);
         openInfoPanel(n.row);
       }
 
@@ -871,11 +959,18 @@
           var el = document.createElement("div");
           el.textContent = label;
           el.style.cssText =
-            "background:white; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:bold; color:#06474f; box-shadow:0 2px 8px rgba(8,94,106,0.25); white-space:nowrap; cursor:pointer; border:2px solid #085e6a;";
+            "background:white; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:bold; color:#06474f; box-shadow:0 2px 8px rgba(8,94,106,0.25); white-space:nowrap; cursor:pointer; border:2px solid #085e6a;";
           el.addEventListener("click", function (e) {
             e.stopPropagation();
             isPolygonClicked = true;
+            setTimeout(function () {
+              isPolygonClicked = false;
+            }, 100);
             map.setBounds(g.bounds);
+            // 화면 폭에 따라 fit 결과 줌이 달라질 수 있어, 개별 보기 기준보다 축소돼 있으면 강제로 보정
+            if (map.getLevel() > NEIGHBORHOOD_ZOOM_THRESHOLD) {
+              map.setLevel(NEIGHBORHOOD_ZOOM_THRESHOLD);
+            }
             updateNeighborhoodVisibility();
             if (g.members.length === 1) {
               selectNeighborhood(g.members[0]);
@@ -921,8 +1016,7 @@
           // 확대 상태에서 항상 보이는 이름표 (폴리곤 자체는 이걸 눌러야 펼쳐짐)
           var nameLabelEl = document.createElement("div");
           nameLabelEl.textContent = row.name;
-          nameLabelEl.style.cssText =
-            "background:white; padding:4px 10px; border-radius:14px; font-size:12px; font-weight:bold; color:#06474f; box-shadow:0 2px 6px rgba(8,94,106,0.3); white-space:nowrap; cursor:pointer; border:1.5px solid #085e6a;";
+          nameLabelEl.style.cssText = NAME_LABEL_STYLE;
           var nameLabel = new kakao.maps.CustomOverlay({
             position: boundsCenter(bounds),
             content: nameLabelEl,
@@ -934,6 +1028,7 @@
           var entry = {
             id: row.id,
             row: row,
+            labelEl: nameLabelEl,
             polygon: polygon,
             nameLabel: nameLabel,
             bounds: bounds,
@@ -971,6 +1066,9 @@
           });
           if (target) {
             map.setBounds(target.bounds);
+            if (map.getLevel() > NEIGHBORHOOD_ZOOM_THRESHOLD) {
+              map.setLevel(NEIGHBORHOOD_ZOOM_THRESHOLD);
+            }
             updateNeighborhoodVisibility();
             selectNeighborhood(target);
           }
@@ -984,6 +1082,8 @@
         }
         isPolygonClicked = false;
         document.getElementById("brand-panel").classList.remove("open");
+        document.getElementById("theme-panel").classList.remove("open");
+        closeThemeCard();
       });
 
       // ══════════════ 큐레이션 테마 레이어 ══════════════
@@ -996,21 +1096,37 @@
         열린공간: "🏛️",
       };
       var themePins = [];
-      var themeInfoWindow = new kakao.maps.InfoWindow({
-        zIndex: 1000,
-        removable: true,
-      });
+      var openThemeCollapse = null; // 지금 카드로 펼쳐진 핀을 다시 칩으로 접는 함수
+
+      function closeThemeCard() {
+        if (openThemeCollapse) {
+          var fn = openThemeCollapse;
+          openThemeCollapse = null;
+          fn();
+        }
+      }
 
       function clearThemePins() {
+        closeThemeCard();
         themePins.forEach(function (p) {
           p.setMap(null);
         });
         themePins = [];
-        themeInfoWindow.close();
       }
 
-      async function onThemeChange() {
-        var theme = document.getElementById("theme-select").value;
+      var THEME_LABELS = {
+        "": "🧭 테마 지도",
+        혼밥: "🍚 혼밥 지도",
+        공부: "✏️ 공부 지도",
+      };
+
+      async function selectTheme(theme) {
+        document.getElementById("theme-btn-label").textContent =
+          THEME_LABELS[theme];
+        document.getElementById("theme-panel").classList.remove("open");
+        document
+          .getElementById("theme-toggle-btn")
+          .classList.toggle("is-active", !!theme);
         clearThemePins();
         if (!theme) return;
 
@@ -1024,45 +1140,82 @@
         }
         data.forEach(function (place) {
           var emoji = CATEGORY_EMOJI[place.category] || "📌";
-          var el = document.createElement("div");
-          el.textContent = emoji + " " + place.name;
-          el.style.cssText =
-            "background:#085e6a; color:white; padding:5px 12px; border-radius:16px; font-size:12.5px; font-weight:bold; white-space:nowrap; cursor:pointer; box-shadow:0 2px 8px rgba(8,94,106,0.4);";
-
           var position = new kakao.maps.LatLng(place.lat, place.lng);
-          el.addEventListener("click", function (e) {
-            e.stopPropagation();
-            var html =
-              '<div style="padding:12px 15px; font-family:inherit; max-width:230px;">' +
-              '<div style="font-weight:bold; font-size:14px; color:#06474f; margin-bottom:4px;">' +
-              emoji +
-              " " +
-              place.name +
-              "</div>" +
-              (place.comment
-                ? '<div style="font-size:12.5px; color:#555; line-height:1.5; margin-bottom:6px;">' +
-                  place.comment +
-                  "</div>"
-                : "") +
-              (place.link
-                ? '<a href="' +
-                  place.link +
-                  '" target="_blank" style="font-size:12px; color:#085e6a; font-weight:bold;">카카오맵에서 보기 →</a>'
-                : "") +
-              "</div>";
-            themeInfoWindow.setContent(html);
-            themeInfoWindow.setPosition(position);
-            themeInfoWindow.open(map);
-          });
 
-          var overlay = new kakao.maps.CustomOverlay({
+          var chipEl = document.createElement("div");
+          chipEl.textContent = emoji + " " + place.name;
+          chipEl.style.cssText =
+            "background:#085e6a; color:white; padding:5px 12px; border-radius:20px; font-size:12.5px; font-weight:bold; white-space:nowrap; cursor:pointer; box-shadow:0 2px 8px rgba(8,94,106,0.4);";
+
+          var pinOverlay = new kakao.maps.CustomOverlay({
             position: position,
-            content: el,
+            content: chipEl,
             map: map, // 큐레이션 배지는 모든 줌 레벨에서 표시
-            yAnchor: 1.2,
+            yAnchor: 0, // 콘텐츠의 맨 위가 지점에 고정 (칩/카드 높이가 달라도 윗선이 항상 같음)
             zIndex: 50,
           });
-          themePins.push(overlay);
+          themePins.push(pinOverlay);
+
+          var cardOverlay = null;
+
+          function collapse() {
+            if (cardOverlay) {
+              cardOverlay.setMap(null);
+              cardOverlay = null;
+            }
+            pinOverlay.setMap(map);
+            if (openThemeCollapse === collapse) openThemeCollapse = null;
+          }
+
+          function expand() {
+            closeThemeCard(); // 다른 핀이 펼쳐져 있으면 먼저 접기
+            pinOverlay.setMap(null); // 칩을 감추고 그 자리에 카드가 대신 나타남
+
+            var card = document.createElement("div");
+            card.style.cssText =
+              "position:relative; background:white; border-radius:12px; padding:14px 15px; width:200px; box-sizing:border-box; box-shadow:0 8px 24px rgba(8,94,106,0.35); font-family:inherit; white-space:normal; overflow-wrap:break-word; word-break:break-word;";
+
+            var titleEl = document.createElement("div");
+            titleEl.style.cssText =
+              "font-weight:bold; font-size:14px; color:#06474f; margin-bottom:4px; white-space:normal; overflow-wrap:break-word; word-break:break-word;";
+            titleEl.textContent = emoji + " " + place.name;
+            card.appendChild(titleEl);
+
+            if (place.comment) {
+              var commentEl = document.createElement("div");
+              commentEl.style.cssText =
+                "font-size:12.5px; color:#555; line-height:1.5; margin-bottom:6px; white-space:normal; overflow-wrap:break-word; word-break:break-word;";
+              commentEl.textContent = place.comment;
+              card.appendChild(commentEl);
+            }
+
+            if (place.link) {
+              var linkEl = document.createElement("a");
+              linkEl.href = place.link;
+              linkEl.target = "_blank";
+              linkEl.textContent = "카카오맵에서 보기 →";
+              linkEl.style.cssText =
+                "display:inline-block; font-size:12px; color:#085e6a; font-weight:bold;";
+              linkEl.addEventListener("click", function (e2) {
+                e2.stopPropagation();
+              });
+              card.appendChild(linkEl);
+            }
+
+            cardOverlay = new kakao.maps.CustomOverlay({
+              position: position,
+              content: card,
+              yAnchor: 0, // 칩과 동일 — 윗선이 칩 있던 자리 그대로 유지
+              zIndex: 1000,
+              map: map,
+            });
+            openThemeCollapse = collapse;
+          }
+
+          chipEl.addEventListener("click", function (e) {
+            e.stopPropagation();
+            expand();
+          });
         });
       }
     </script>
