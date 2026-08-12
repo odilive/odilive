@@ -412,6 +412,9 @@
             <button class="ctrl-option" onclick="selectTheme('공부')">
               ✏️ 공부 지도
             </button>
+            <button class="ctrl-option" onclick="selectTheme('산책')">
+              🚶 산책 지도
+            </button>
           </div>
         </div>
         <button class="ctrl-btn" id="brand-toggle-btn" onclick="toggleAllBrands()">
@@ -1006,6 +1009,9 @@
         카페: "☕",
         도서관: "📚",
         열린공간: "🏛️",
+        공원: "🌳",
+        산책로: "🛣️",
+        전망: "🌇",
       };
       var themePins = [];
       var openThemeCollapse = null; // 지금 카드로 펼쳐진 핀을 다시 칩으로 접는 함수
@@ -1030,6 +1036,7 @@
         "": "🧭 테마 지도",
         혼밥: "🍚 혼밥 지도",
         공부: "✏️ 공부 지도",
+        산책: "🚶 산책 지도",
       };
 
       async function selectTheme(theme) {
