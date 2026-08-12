@@ -24,7 +24,7 @@
       /* [수정] 1. 사이트 전체 레이아웃 (body 단독 설정으로 복구) */
       body {
         margin: 0;
-        padding: 20px;
+        padding: 10px 20px 20px;
         background-color: #f0f2f5;
         color: #333;
         height: 100vh;
@@ -50,9 +50,9 @@
       .admin-header {
         display: flex;
         justify-content: space-between;
-        align-items: flex-end;
-        margin-bottom: 20px;
-        padding: 10px 5px;
+        align-items: center;
+        margin-bottom: 8px;
+        padding: 4px 5px;
         border-bottom: 2px solid #3498db;
         flex-shrink: 0;
       }
@@ -364,13 +364,11 @@
         <img
           src="logo.png"
           alt="어디살까 로고"
-          style="height: 70px; width: auto"
+          style="height: 40px; width: auto"
         />
         <h1
           style="margin: 0; font-size: 28px; font-weight: 900; color: #2c3e50"
-        >
-          어디살까? 자취하기 좋은 동네!
-        </h1>
+        ></h1>
       </div>
       <div class="status">
         Editor Mode: odilive
@@ -544,7 +542,7 @@
         type="text"
         id="cp_search"
         placeholder="장소 검색 (카카오맵에서 찾기)"
-        onkeydown="if(event.key==='Enter')cpSearch()"
+        onkeydown="if (event.key === 'Enter') cpSearch();"
       />
       <div id="cp_results"></div>
       <button
@@ -565,7 +563,11 @@
         🗺️ 검색이 안 되는 곳: 지도에서 직접 찍기
       </button>
       <input type="text" id="cp_name" placeholder="장소 이름" />
-      <input type="text" id="cp_comment" placeholder="한줄평 (예: 밤 10시까지, 콘센트 많음)" />
+      <input
+        type="text"
+        id="cp_comment"
+        placeholder="한줄평 (예: 밤 10시까지, 콘센트 많음)"
+      />
       <input type="text" id="cp_link" placeholder="링크 (선택, 자동 입력됨)" />
       <label
         style="
@@ -578,7 +580,11 @@
           cursor: pointer;
         "
       >
-        <input type="checkbox" id="cp_published" style="width: auto; margin: 0" />
+        <input
+          type="checkbox"
+          id="cp_published"
+          style="width: auto; margin: 0"
+        />
         공개하기
       </label>
       <div style="display: flex; gap: 8px">
@@ -767,15 +773,11 @@
                   }
 
                   // 2. [공통] 모든 브랜드 마커 클릭 시 카카오맵 상세페이지 새 창으로 열기
-                  kakao.maps.event.addListener(
-                    marker,
-                    "click",
-                    function () {
-                      if (place.place_url) {
-                        window.open(place.place_url, "_blank");
-                      }
-                    },
-                  );
+                  kakao.maps.event.addListener(marker, "click", function () {
+                    if (place.place_url) {
+                      window.open(place.place_url, "_blank");
+                    }
+                  });
                   // ========================================================
 
                   brandData[brand].markers[place.id] = marker;
@@ -1218,7 +1220,8 @@
         document.getElementById("t_desc").value = poly.myData.desc;
         document.getElementById("t_youtube").value = poly.myData.youtube || "";
         document.getElementById("t_blog").value = poly.myData.blog || "";
-        document.getElementById("t_published").checked = !!poly.myData.published;
+        document.getElementById("t_published").checked =
+          !!poly.myData.published;
         amenityState = Object.assign({}, poly.myData.amenities || {});
         renderAmenityGrades();
         var btnGroup = document.getElementById("button-group");
@@ -1263,13 +1266,16 @@
           var current = amenityState[item] || "";
           var buttons = ["O", "△", "X"]
             .map(function (g) {
-              var active = current === g ? GRADE_STYLE[g] : "background:#fff; color:#999; border-color:#ddd;";
+              var active =
+                current === g
+                  ? GRADE_STYLE[g]
+                  : "background:#fff; color:#999; border-color:#ddd;";
               return (
                 '<button type="button" onclick="setAmenityGrade(\'' +
                 item +
                 "','" +
                 g +
-                "')\" style=\"width:36px; padding:5px 0; margin-left:4px; border:1px solid; border-radius:6px; font-size:13px; font-weight:bold; cursor:pointer; " +
+                '\')" style="width:36px; padding:5px 0; margin-left:4px; border:1px solid; border-radius:6px; font-size:13px; font-weight:bold; cursor:pointer; ' +
                 active +
                 '">' +
                 (g === "O" ? "○" : g === "X" ? "✕" : "△") +
@@ -1333,7 +1339,11 @@
             path[index] = vertexMarker.getPosition();
             activePolygon.setPath(path);
           };
-          kakao.maps.event.addListener(vertexMarker, "drag", updateVertexPosition);
+          kakao.maps.event.addListener(
+            vertexMarker,
+            "drag",
+            updateVertexPosition,
+          );
           kakao.maps.event.addListener(
             vertexMarker,
             "dragend",
@@ -1422,11 +1432,7 @@
             .update(row)
             .eq("id", activePolygon.myData.id);
         } else {
-          result = await sb
-            .from("neighborhoods")
-            .insert(row)
-            .select()
-            .single();
+          result = await sb.from("neighborhoods").insert(row).select().single();
         }
 
         if (result.error) {
@@ -1545,10 +1551,18 @@
 
       function cpUpdateCategoryOptions() {
         var layer = document.getElementById("cp_layer").value;
-        document.getElementById("cp_category").innerHTML = LAYER_CATEGORIES[layer]
+        document.getElementById("cp_category").innerHTML = LAYER_CATEGORIES[
+          layer
+        ]
           .map(function (c) {
             return (
-              '<option value="' + c + '">' + CATEGORY_EMOJI[c] + " " + c + "</option>"
+              '<option value="' +
+              c +
+              '">' +
+              CATEGORY_EMOJI[c] +
+              " " +
+              c +
+              "</option>"
             );
           })
           .join("");
@@ -1622,7 +1636,9 @@
         listEl.innerHTML = curatedPlaces
           .map(function (p) {
             return (
-              '<div class="cp-item" onclick="cpEdit(\'' + p.id + '\')">' +
+              '<div class="cp-item" onclick="cpEdit(\'' +
+              p.id +
+              "')\">" +
               "<span>" +
               (CATEGORY_EMOJI[p.category] || "📌") +
               " " +

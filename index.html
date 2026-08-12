@@ -29,6 +29,15 @@
       rel="stylesheet"
     />
     <style>
+      @font-face {
+        font-family: "PyeongChangPeace-Bold";
+        src: url("https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2206-02@1.0/PyeongChangPeace-Bold.woff2")
+          format("woff2");
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+      }
+
       :root {
         --brand-teal: #085e6a;
         --brand-teal-dark: #06474f;
@@ -40,7 +49,7 @@
 
       body {
         margin: 0;
-        padding: 20px;
+        padding: 12px 20px 20px;
         background-color: #f2f6f6;
         color: var(--ink);
         height: 100vh;
@@ -65,20 +74,30 @@
       .header {
         display: flex;
         align-items: center;
-        gap: 15px;
-        margin-bottom: 20px;
-        padding: 10px 5px;
-        border-bottom: 2px solid var(--brand-teal);
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 6px;
+        padding: 4px 4px;
         flex-shrink: 0;
       }
-      .header h1 {
+      .header-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .header-wordmark {
         margin: 0;
-        font-size: clamp(15px, 4.5vw, 24px);
-        white-space: nowrap;
+        font-size: 26px;
+        font-family: "PyeongChangPeace-Bold", sans-serif;
+        font-weight: 700;
+        color: var(--brand-teal);
         letter-spacing: -0.01em;
-        font-family: "S-Core Dream", sans-serif;
-        font-weight: 900;
-        color: var(--brand-teal-dark);
+      }
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 1px; /* 나중에 로그인/메뉴 아이콘 들어올 자리 */
       }
 
       #map-controls {
@@ -390,8 +409,11 @@
   </head>
   <body>
     <div class="header">
-      <img src="logo.png" alt="어디살까 로고" style="height: 50px; width: auto" />
-      <h1>어디살까? 자취하기 좋은 동네!</h1>
+      <div class="header-brand">
+        <img src="logo.png" alt="어디살까 로고" style="height: 42px; width: auto" />
+        <p class="header-wordmark">어디살까</p>
+      </div>
+      <div class="header-actions"></div>
     </div>
 
     <div id="map-wrap">
