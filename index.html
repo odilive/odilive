@@ -284,9 +284,6 @@
       #info-specs .spec-text {
         color: var(--ink-soft);
       }
-      #info-specs .spec-row-info {
-        position: relative;
-      }
       .spec-info-btn {
         border: 1.5px solid var(--ink-soft);
         background: none;
@@ -307,12 +304,10 @@
       }
       #info-specs .spec-info-tooltip {
         display: none;
-        position: absolute;
-        top: 100%;
-        left: 0;
-        margin-top: 6px;
+        position: fixed;
+        box-sizing: border-box;
         width: 300px;
-        max-width: 80vw;
+        max-width: calc(100vw - 16px);
         background: white;
         border: 1px solid var(--line);
         border-radius: 8px;
@@ -322,9 +317,8 @@
         color: var(--ink-soft);
         word-break: keep-all;
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-        z-index: 30;
+        z-index: 10000;
       }
-      #info-specs .spec-row-info:hover .spec-info-tooltip,
       #info-specs .spec-info-tooltip.open {
         display: block;
       }
@@ -332,7 +326,8 @@
         color: #c76a15;
         font-weight: 800;
       }
-      .spec-info-note {
+      #info-specs .spec-info-note {
+        display: block;
         margin-top: 6px;
         font-size: 11px;
         color: #9aa7a8;
@@ -610,6 +605,7 @@
       var infoWindow = new kakao.maps.InfoWindow({ zIndex: 999 });
 
       function updateBrandMarkers() {
+        if (map.getLevel() > NEIGHBORHOOD_ZOOM_THRESHOLD) return; // 역단위로 축소된 상태에서는 검색도 생략
         var bounds = map.getBounds();
 
         var brandPriority = {
@@ -864,16 +860,39 @@
         }
       }
 
+      function positionSpecTooltip(btn, tip) {
+        var margin = 8;
+        var tipWidth = Math.min(300, window.innerWidth - margin * 2);
+        var rect = btn.getBoundingClientRect();
+        var left = Math.min(
+          Math.max(margin, rect.left),
+          window.innerWidth - tipWidth - margin,
+        );
+        tip.style.left = left + "px";
+        var spaceBelow = window.innerHeight - rect.bottom;
+        if (spaceBelow < 170) {
+          tip.style.bottom = window.innerHeight - rect.top + 6 + "px";
+          tip.style.top = "auto";
+        } else {
+          tip.style.top = rect.bottom + 6 + "px";
+          tip.style.bottom = "auto";
+        }
+      }
+
       function toggleSpecInfo(e) {
         e.stopPropagation();
-        var tip = e.target.nextElementSibling;
+        var btn = e.target;
+        var tip = btn.nextElementSibling;
         var wasOpen = tip.classList.contains("open");
         document
           .querySelectorAll(".spec-info-tooltip.open")
           .forEach(function (t) {
             t.classList.remove("open");
           });
-        if (!wasOpen) tip.classList.add("open");
+        if (!wasOpen) {
+          positionSpecTooltip(btn, tip);
+          tip.classList.add("open");
+        }
       }
       document.addEventListener("click", function (e) {
         if (!e.target.closest(".spec-row-info")) {
@@ -901,7 +920,7 @@
             '<div class="spec-row-info"><span class="spec-label">개발</span><span class="spec-text">' +
             row.development +
             '</span><button class="spec-info-btn" onclick="toggleSpecInfo(event)">?</button>' +
-            '<div class="spec-info-tooltip">정비구역지정 → 조합설립인가 → 사업시행인가 → ' +
+            '<div class="spec-info-tooltip">정비구역지정 → 조합설립인가 → 사업시행인가 → ' +
             '<span class="dev-stage-danger">관리처분인가</span> → ' +
             '<span class="dev-stage-danger">이주·철거</span> → 착공 → 준공' +
             '<div class="spec-info-note">사업 유형에 따라 단계가 다를 수 있어요</div>' +
@@ -911,7 +930,7 @@
             '<div class="spec-row-info"><span class="spec-label">교통</span><span class="spec-text">' +
             row.transit +
             '</span><button class="spec-info-btn" onclick="toggleSpecInfo(event)">?</button>' +
-            '<div class="spec-info-tooltip">지하철·버스 소요시간 기준이에요.' +
+            '<div class="spec-info-tooltip">도보이동 제외한 지하철 소요시간 기준이에요.' +
             "</div></div>";
         if (row.price)
           specs +=
@@ -1038,9 +1057,31 @@
         stationGroups.forEach(function (g) {
           g.marker.setMap(showIndividual ? null : map);
         });
+        // 역단위로 축소된 상태에서는 큐레이션 핀·자취인프라 마커도 같이 숨겨서 소음을 줄임
+        closeThemeCard();
+        themePins.forEach(function (p) {
+          p.setMap(showIndividual ? map : null);
+        });
+        updateBrandMarkerVisibility();
+        // 이 줌에서는 기능 자체가 무의미하니 버튼도 같이 숨김 (눌러도 반응 없어 보이는 것 방지)
+        document.querySelector(".ctrl-wrap").style.display = showIndividual
+          ? ""
+          : "none";
+        document.getElementById("brand-toggle-btn").style.display =
+          showIndividual ? "" : "none";
         if (!showIndividual) {
           closeInfoPanel(); // 축소되면 선택 해제 + 펼쳐진 폴리곤·이모지·패널 정리
         }
+      }
+
+      function updateBrandMarkerVisibility() {
+        var showIndividual = map.getLevel() <= NEIGHBORHOOD_ZOOM_THRESHOLD;
+        Object.keys(brandData).forEach(function (brand) {
+          var state = brandData[brand];
+          Object.values(state.markers).forEach(function (marker) {
+            marker.setMap(state.active && showIndividual ? map : null);
+          });
+        });
       }
 
       // 같은 역(row.station) 기준으로 동네들을 묶어서, 축소 상태에서 역당 라벨 하나만 표시
@@ -1275,7 +1316,8 @@
           var pinOverlay = new kakao.maps.CustomOverlay({
             position: position,
             content: chipEl,
-            map: map, // 큐레이션 배지는 모든 줌 레벨에서 표시
+            // 역단위로 축소된 상태(showIndividual=false)에서는 처음부터 숨김
+            map: map.getLevel() <= NEIGHBORHOOD_ZOOM_THRESHOLD ? map : null,
             yAnchor: 0, // 콘텐츠의 맨 위가 지점에 고정 (칩/카드 높이가 달라도 윗선이 항상 같음)
             zIndex: 50,
           });

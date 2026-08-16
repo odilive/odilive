@@ -413,6 +413,14 @@
         ◀ 마지막 점 취소
       </button>
       <button
+        id="btnCancelDrawing"
+        class="btn"
+        style="display: none; margin-right: 8px"
+        onclick="cancelPolygonDrawing()"
+      >
+        ✕ 그리기 취소
+      </button>
+      <button
         id="btnCuration"
         class="btn btn-export"
         style="margin-right: 8px"
@@ -844,6 +852,7 @@
       var subMarkers = [];
       var lastScanFacilities = []; // 마지막 라이브 스캔 결과 (저장 시 DB에 스냅샷으로 기록)
       var vertexMarkers = [];
+      var midpointMarkers = [];
       var isEditingBoundary = false;
 
       function isPointInPolygon(point, polygonPoints) {
@@ -990,17 +999,26 @@
         isDrawing = status;
         var btn = document.getElementById("btnStart");
         var undoBtn = document.getElementById("btnUndoPoint");
+        var cancelBtn = document.getElementById("btnCancelDrawing");
         if (status) {
           document.body.classList.add("draw-mode");
           resetDrawing();
           closeSidebar();
-          btn.textContent = "🖱️ 그리는 중... (Backspace: 마지막 점 취소)";
+          btn.textContent = "🖱️ 그리는 중... (Esc: 취소, Backspace: 마지막 점 취소)";
           undoBtn.style.display = "inline-flex";
+          cancelBtn.style.display = "inline-flex";
         } else {
           document.body.classList.remove("draw-mode");
           btn.textContent = "📍 새 동네 영역 그리기";
           undoBtn.style.display = "none";
+          cancelBtn.style.display = "none";
         }
+      }
+
+      // 그리던 도중 마음이 바뀌었을 때 전체 취소
+      function cancelPolygonDrawing() {
+        resetDrawing();
+        toggleDrawing(false);
       }
 
       function resetDrawing() {
@@ -1026,8 +1044,9 @@
 
       // 지도 빈 곳 클릭 리스너
       kakao.maps.event.addListener(map, "click", function () {
-        if (!isDrawing && !isPolygonClicked) {
+        if (!isDrawing && !isPolygonClicked && !isPlacingPin) {
           closeSidebar();
+          closeCurationPanel();
           clearSubMarkers(); // [수정] 빈 지도 클릭 시 켜져 있던 미니 이모지도 함께 숨김
         }
         isPolygonClicked = false;
@@ -1059,12 +1078,14 @@
         addPoint(latlng);
       });
 
-      // [추가] 그리는 중 Backspace 키로 마지막 점 취소 (우클릭은 카카오맵/브라우저와 충돌이 있어 제외)
+      // [추가] 그리는 중 Backspace로 마지막 점 취소, Esc로 전체 취소 (우클릭은 카카오맵/브라우저와 충돌이 있어 제외)
       document.addEventListener("keydown", function (e) {
         if (!isDrawing) return;
         if (e.key === "Backspace") {
           e.preventDefault();
           undoLastPoint();
+        } else if (e.key === "Escape") {
+          cancelPolygonDrawing();
         }
       });
 
@@ -1190,7 +1211,7 @@
         resetDrawing();
         setTimeout(() => {
           isPolygonClicked = false;
-        }, 100);
+        }, 350);
       }
 
       // [추가] Supabase에 저장된 동네들을 지도에 불러와 표시
@@ -1356,6 +1377,8 @@
         clearVertexMarkers();
         isEditingBoundary = true;
 
+        var path = activePolygon.getPath();
+
         var vertexIcon = new kakao.maps.MarkerImage(
           "data:image/svg+xml;charset=utf-8," +
             encodeURIComponent(
@@ -1364,8 +1387,17 @@
           new kakao.maps.Size(16, 16),
           { offset: new kakao.maps.Point(8, 8) },
         );
+        // 변의 중간에 찍히는 "+ 추가" 핸들 (반투명 보라 점)
+        var midpointIcon = new kakao.maps.MarkerImage(
+          "data:image/svg+xml;charset=utf-8," +
+            encodeURIComponent(
+              '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><circle cx="6" cy="6" r="5" fill="#9b59b6" fill-opacity="0.55" stroke="#9b59b6" stroke-width="1.5"/></svg>',
+            ),
+          new kakao.maps.Size(12, 12),
+          { offset: new kakao.maps.Point(6, 6) },
+        );
 
-        activePolygon.getPath().forEach(function (latlng, index) {
+        path.forEach(function (latlng, index) {
           var vertexMarker = new kakao.maps.Marker({
             position: latlng,
             image: vertexIcon,
@@ -1376,9 +1408,29 @@
           var updateVertexPosition = function () {
             // getPath()가 돌려준 배열을 그 자리에서 고치면 카카오맵이 "변경 없음"으로
             // 판단해 다시 그리지 않는 경우가 있어, 새 배열로 복사해서 넘긴다.
-            var path = activePolygon.getPath().slice();
-            path[index] = vertexMarker.getPosition();
-            activePolygon.setPath(path);
+            var newPos = vertexMarker.getPosition();
+            var p = activePolygon.getPath().slice();
+            p[index] = newPos;
+            activePolygon.setPath(p);
+
+            // 양옆 + 핸들도 드래그하는 동안 같이 따라오도록 위치 재계산
+            var len = path.length;
+            var prevIndex = (index - 1 + len) % len;
+            var nextIndex = (index + 1) % len;
+            var prevPos = vertexMarkers[prevIndex].getPosition();
+            var nextPos = vertexMarkers[nextIndex].getPosition();
+            midpointMarkers[prevIndex].setPosition(
+              new kakao.maps.LatLng(
+                (prevPos.getLat() + newPos.getLat()) / 2,
+                (prevPos.getLng() + newPos.getLng()) / 2,
+              ),
+            );
+            midpointMarkers[index].setPosition(
+              new kakao.maps.LatLng(
+                (newPos.getLat() + nextPos.getLat()) / 2,
+                (newPos.getLng() + nextPos.getLng()) / 2,
+              ),
+            );
           };
           kakao.maps.event.addListener(
             vertexMarker,
@@ -1390,11 +1442,51 @@
             "dragend",
             updateVertexPosition,
           );
+          kakao.maps.event.addListener(vertexMarker, "click", function () {
+            removeVertex(index);
+          });
           vertexMarkers.push(vertexMarker);
+
+          // 이 꼭짓점 → 다음 꼭짓점 변의 중간 지점 (마지막 변은 첫 꼭짓점으로 이어짐)
+          var nextLatlng = path[(index + 1) % path.length];
+          var midMarker = new kakao.maps.Marker({
+            position: new kakao.maps.LatLng(
+              (latlng.getLat() + nextLatlng.getLat()) / 2,
+              (latlng.getLng() + nextLatlng.getLng()) / 2,
+            ),
+            image: midpointIcon,
+            map: map,
+            zIndex: 199,
+          });
+          kakao.maps.event.addListener(midMarker, "click", function () {
+            insertVertexAfter(index, midMarker.getPosition());
+          });
+          midpointMarkers.push(midMarker);
         });
 
         document.getElementById("btn-edit-boundary").textContent =
           "경계 수정 완료";
+      }
+
+      // 꼭짓점 마커 클릭 시 그 꼭짓점 삭제 (최소 3개는 유지)
+      function removeVertex(index) {
+        var path = activePolygon.getPath();
+        if (path.length <= 3) {
+          alert("최소 3개의 꼭짓점은 있어야 합니다.");
+          return;
+        }
+        var newPath = path.slice();
+        newPath.splice(index, 1);
+        activePolygon.setPath(newPath);
+        startBoundaryEdit();
+      }
+
+      // 변 중간의 + 핸들 클릭 시 그 자리에 새 꼭짓점 삽입
+      function insertVertexAfter(index, latlng) {
+        var newPath = activePolygon.getPath().slice();
+        newPath.splice(index + 1, 0, latlng);
+        activePolygon.setPath(newPath);
+        startBoundaryEdit();
       }
 
       function endBoundaryEdit() {
@@ -1409,6 +1501,10 @@
           m.setMap(null);
         });
         vertexMarkers = [];
+        midpointMarkers.forEach(function (m) {
+          m.setMap(null);
+        });
+        midpointMarkers = [];
       }
 
       // [추가] 저장된 동네의 편·약·빨을 다시 실시간 스캔 (저장 전까지는 DB에 반영 안 됨)
@@ -1627,7 +1723,7 @@
         document.getElementById("curation-panel").classList.remove("open");
         cpExitPinMode();
         cpClearPins();
-        cpClearPreview();
+        cpClear(); // 폼도 같이 리셋 (cpClearPreview 포함)
       }
 
       function toggleCurationPanel() {
@@ -1670,6 +1766,13 @@
           el.style.cssText =
             "background:#085e6a; color:white; padding:4px 10px; border-radius:14px; font-size:12px; font-weight:bold; white-space:nowrap; cursor:pointer; box-shadow:0 2px 6px rgba(8,94,106,0.4);" +
             (place.published ? "" : "opacity:0.55;");
+          el.addEventListener("mousedown", function (e) {
+            e.stopPropagation();
+            isPolygonClicked = true;
+            setTimeout(function () {
+              isPolygonClicked = false;
+            }, 100);
+          });
           el.addEventListener("click", function (e) {
             e.stopPropagation();
             cpEdit(place.id);
