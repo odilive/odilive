@@ -181,7 +181,7 @@
         height: 100vh;
         background: white;
         z-index: 9999;
-        padding: 30px;
+        padding: 20px 24px;
         box-shadow: -5px 0 20px rgba(0, 0, 0, 0.2);
         transition: 0.3s ease-out;
         box-sizing: border-box;
@@ -196,8 +196,9 @@
       #curation-panel {
         overflow-y: auto;
       }
+      #sidebar h3,
       #curation-panel h3 {
-        margin: 0 0 15px;
+        margin: 0 0 12px;
       }
       #curation-panel select {
         font-family: inherit;
@@ -229,28 +230,6 @@
         color: #999;
         display: block;
       }
-      #cp_list {
-        margin-top: 15px;
-        border-top: 1px solid #eee;
-        padding-top: 10px;
-      }
-      #cp_list .cp-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 7px 8px;
-        border-radius: 6px;
-        font-size: 13px;
-        cursor: pointer;
-      }
-      #cp_list .cp-item:hover {
-        background: #f4faf9;
-      }
-      #cp_list .cp-item .cp-draft {
-        color: #e67e22;
-        font-size: 11px;
-        margin-left: 6px;
-      }
       .close-btn {
         position: absolute;
         top: 20px;
@@ -266,12 +245,12 @@
       textarea {
         font-family: inherit;
         width: 100%;
-        margin-bottom: 15px;
-        padding: 12px;
+        margin-bottom: 9px;
+        padding: 9px 10px;
         border: 1px solid #ddd;
         border-radius: 6px;
         box-sizing: border-box;
-        font-size: 14px;
+        font-size: 13.5px;
       }
       #button-group {
         display: flex;
@@ -282,7 +261,7 @@
       .btn-full {
         font-family: inherit;
         flex: 1;
-        padding: 15px;
+        padding: 12px;
         border-radius: 6px;
         font-weight: bold;
         cursor: pointer;
@@ -451,21 +430,49 @@
     <div id="sidebar">
       <button class="close-btn" onclick="closeSidebar()">&times;</button>
       <h3>🏡 동네 정보</h3>
-      <input
-        type="text"
-        id="t_name"
-        placeholder="동네 이름 (예: 성수동 카페거리)"
-      />
-      <input
-        type="text"
-        id="t_station"
-        placeholder="🚇 역 (예: 낙성대역 — 축소 지도에서 이 역 기준으로 묶여 보임)"
-      />
+      <div style="display: flex; gap: 8px">
+        <input
+          type="text"
+          id="t_station"
+          placeholder="🚇 역 이름 (예: 낙성대역)"
+          style="width: auto; min-width: 0; flex: 1"
+        />
+        <input
+          type="text"
+          id="t_name_detail"
+          placeholder="세부 동네 이름 (예: 뒷골목)"
+          style="width: auto; min-width: 0; flex: 1.3"
+        />
+      </div>
       <input
         type="text"
         id="t_tagline"
         placeholder="한 줄 정의 (예: 여의도 인프라를 슬리퍼로 누리는 동네)"
       />
+      <input
+        type="text"
+        id="t_development"
+        placeholder="🚧 재개발 정보 (예: 사업시행인가 완료(2025) · 관리처분 2027 상반기 예정)"
+      />
+      <label
+        style="
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 9px;
+          font-size: 13.5px;
+          color: #2c3e50;
+          cursor: pointer;
+        "
+      >
+        <input
+          type="checkbox"
+          id="t_development_highlight"
+          checked
+          style="width: auto; margin: 0"
+        />
+        지도에 재개발 강조 표시 (폴리곤·라벨 색상)
+      </label>
       <input
         type="text"
         id="t_transit"
@@ -478,10 +485,10 @@
       />
       <textarea
         id="t_desc"
-        rows="7"
+        rows="4"
         placeholder="이 동네의 특징이나 메모를 적어보세요."
       ></textarea>
-      <div id="amenity-grades" style="margin-bottom: 15px"></div>
+      <div id="amenity-grades" style="margin-bottom: 9px"></div>
       <input
         type="text"
         id="t_youtube"
@@ -497,8 +504,8 @@
           display: flex;
           align-items: center;
           gap: 8px;
-          margin-bottom: 15px;
-          font-size: 14px;
+          margin-bottom: 9px;
+          font-size: 13.5px;
           color: #2c3e50;
           cursor: pointer;
         "
@@ -509,6 +516,25 @@
           style="width: auto; margin: 0"
         />
         이 동네를 공개하기 (체크 안 하면 나만 보이는 초안)
+      </label>
+      <label
+        style="
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 9px;
+          font-size: 13.5px;
+          color: #2c3e50;
+          cursor: pointer;
+        "
+      >
+        <input
+          type="checkbox"
+          id="t_show_facilities"
+          checked
+          style="width: auto; margin: 0"
+        />
+        편의점·약국·빨래방 정보 표시
       </label>
       <button
         id="btn-edit-boundary"
@@ -607,7 +633,6 @@
           새로
         </button>
       </div>
-      <div id="cp_list"></div>
     </div>
 
     <script
@@ -1197,11 +1222,14 @@
             desc: row.description || "",
             facilities: row.facilities || [],
             amenities: row.amenities || {},
+            development: row.development || "",
+            developmentHighlight: row.development_highlight,
             transit: row.transit || "",
             price: row.price || "",
             youtube: row.youtube_url || "",
             blog: row.blog_url || "",
             published: row.published || false,
+            showFacilities: row.show_facilities,
             saved: true,
           };
           attachPolygonEvents(polygon);
@@ -1211,10 +1239,21 @@
 
       function openSidebar(poly) {
         endBoundaryEdit(); // 다른 폴리곤을 열 때 이전 경계 수정 상태 정리
+        closeCurationPanel();
         activePolygon = poly;
-        document.getElementById("t_name").value = poly.myData.name;
-        document.getElementById("t_station").value = poly.myData.station || "";
+        var station = poly.myData.station || "";
+        var name = poly.myData.name || "";
+        var detail =
+          station && name.indexOf(station) === 0
+            ? name.slice(station.length).replace(/^\s+/, "")
+            : name;
+        document.getElementById("t_station").value = station;
+        document.getElementById("t_name_detail").value = detail;
         document.getElementById("t_tagline").value = poly.myData.tagline || "";
+        document.getElementById("t_development").value =
+          poly.myData.development || "";
+        document.getElementById("t_development_highlight").checked =
+          poly.myData.developmentHighlight !== false;
         document.getElementById("t_transit").value = poly.myData.transit || "";
         document.getElementById("t_price").value = poly.myData.price || "";
         document.getElementById("t_desc").value = poly.myData.desc;
@@ -1222,6 +1261,8 @@
         document.getElementById("t_blog").value = poly.myData.blog || "";
         document.getElementById("t_published").checked =
           !!poly.myData.published;
+        document.getElementById("t_show_facilities").checked =
+          poly.myData.showFacilities !== false;
         amenityState = Object.assign({}, poly.myData.amenities || {});
         renderAmenityGrades();
         var btnGroup = document.getElementById("button-group");
@@ -1382,7 +1423,9 @@
 
       async function saveData() {
         if (!activePolygon) return;
-        var name = document.getElementById("t_name").value;
+        var station = document.getElementById("t_station").value.trim();
+        var detail = document.getElementById("t_name_detail").value.trim();
+        var name = station ? (detail ? station + " " + detail : station) : detail;
         if (!name) {
           alert("동네 이름을 입력해주세요!");
           return;
@@ -1403,12 +1446,18 @@
           if (amenityState[item]) amenities[item] = amenityState[item];
         });
 
-        var station = document.getElementById("t_station").value;
         var tagline = document.getElementById("t_tagline").value;
+        var development = document.getElementById("t_development").value;
+        var developmentHighlight = document.getElementById(
+          "t_development_highlight",
+        ).checked;
         var transit = document.getElementById("t_transit").value;
         var price = document.getElementById("t_price").value;
         var youtube = document.getElementById("t_youtube").value;
         var blog = document.getElementById("t_blog").value;
+        var showFacilities = document.getElementById(
+          "t_show_facilities",
+        ).checked;
 
         var row = {
           name: name,
@@ -1418,11 +1467,14 @@
           polygon: path,
           facilities: facilities,
           amenities: amenities,
+          development: development,
+          development_highlight: developmentHighlight,
           transit: transit,
           price: price,
           youtube_url: youtube,
           blog_url: blog,
           published: published,
+          show_facilities: showFacilities,
         };
 
         var result;
@@ -1449,11 +1501,14 @@
         activePolygon.myData.desc = desc;
         activePolygon.myData.facilities = facilities;
         activePolygon.myData.amenities = amenities;
+        activePolygon.myData.development = development;
+        activePolygon.myData.developmentHighlight = developmentHighlight;
         activePolygon.myData.transit = transit;
         activePolygon.myData.price = price;
         activePolygon.myData.youtube = youtube;
         activePolygon.myData.blog = blog;
         activePolygon.myData.published = published;
+        activePolygon.myData.showFacilities = showFacilities;
         activePolygon.myData.saved = true;
         activePolygon.myData.pendingRescan = false;
         activePolygon.setOptions({
@@ -1568,13 +1623,17 @@
           .join("");
       }
 
+      function closeCurationPanel() {
+        document.getElementById("curation-panel").classList.remove("open");
+        cpExitPinMode();
+        cpClearPins();
+        cpClearPreview();
+      }
+
       function toggleCurationPanel() {
         var panel = document.getElementById("curation-panel");
         if (panel.classList.contains("open")) {
-          panel.classList.remove("open");
-          cpExitPinMode();
-          cpClearPins();
-          cpClearPreview();
+          closeCurationPanel();
         } else {
           closeSidebar();
           panel.classList.add("open");
@@ -1593,7 +1652,6 @@
         }
         curatedPlaces = data;
         cpRenderPins();
-        cpRenderList();
       }
 
       function cpClearPins() {
@@ -1624,33 +1682,6 @@
           });
           cpPins.push(overlay);
         });
-      }
-
-      function cpRenderList() {
-        var listEl = document.getElementById("cp_list");
-        if (curatedPlaces.length === 0) {
-          listEl.innerHTML =
-            '<div style="color:#999; font-size:13px">등록된 장소가 없습니다.</div>';
-          return;
-        }
-        listEl.innerHTML = curatedPlaces
-          .map(function (p) {
-            return (
-              '<div class="cp-item" onclick="cpEdit(\'' +
-              p.id +
-              "')\">" +
-              "<span>" +
-              (CATEGORY_EMOJI[p.category] || "📌") +
-              " " +
-              p.name +
-              '<span style="color:#aaa"> · ' +
-              p.layer +
-              "</span>" +
-              (p.published ? "" : '<span class="cp-draft">초안</span>') +
-              "</span></div>"
-            );
-          })
-          .join("");
       }
 
       function cpSearch() {
