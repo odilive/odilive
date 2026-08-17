@@ -1245,6 +1245,8 @@
             amenities: row.amenities || {},
             development: row.development || "",
             developmentHighlight: row.development_highlight,
+            labelLat: row.label_lat,
+            labelLng: row.label_lng,
             transit: row.transit || "",
             price: row.price || "",
             youtube: row.youtube_url || "",
@@ -1304,13 +1306,58 @@
           editBoundaryBtn.style.display = "block";
         }
         document.getElementById("sidebar").classList.add("open");
+        showLabelMarker(poly);
       }
 
       function closeSidebar() {
         endBoundaryEdit();
         clearSubMarkers();
+        hideLabelMarker();
         document.getElementById("sidebar").classList.remove("open");
         activePolygon = null;
+      }
+
+      // ── 동네 이름표 위치 직접 조정 (안 옮기면 폴리곤 중심으로 자동 계산) ──
+      var labelMarker = null;
+      var labelOverride = null; // null = 자동, 값 있으면 관리자가 직접 지정한 위치
+
+      function polygonBoundsCenter(polygon) {
+        var bounds = new kakao.maps.LatLngBounds();
+        polygon.getPath().forEach(function (p) {
+          bounds.extend(p);
+        });
+        var sw = bounds.getSouthWest();
+        var ne = bounds.getNorthEast();
+        return new kakao.maps.LatLng(
+          (sw.getLat() + ne.getLat()) / 2,
+          (sw.getLng() + ne.getLng()) / 2,
+        );
+      }
+
+      function showLabelMarker(poly) {
+        hideLabelMarker();
+        labelOverride =
+          poly.myData.labelLat != null
+            ? new kakao.maps.LatLng(poly.myData.labelLat, poly.myData.labelLng)
+            : null;
+        labelMarker = new kakao.maps.Marker({
+          position: labelOverride || polygonBoundsCenter(poly),
+          draggable: true,
+          map: map,
+          zIndex: 300,
+          title: "동네 이름표 위치 (드래그해서 조정)",
+        });
+        kakao.maps.event.addListener(labelMarker, "dragend", function () {
+          labelOverride = labelMarker.getPosition();
+        });
+      }
+
+      function hideLabelMarker() {
+        if (labelMarker) {
+          labelMarker.setMap(null);
+          labelMarker = null;
+        }
+        labelOverride = null;
       }
 
       // ── 동네별 편의시설 ○/△/X 판정 (관리자가 직접 판단) ──
@@ -1565,6 +1612,8 @@
           amenities: amenities,
           development: development,
           development_highlight: developmentHighlight,
+          label_lat: labelOverride ? labelOverride.getLat() : null,
+          label_lng: labelOverride ? labelOverride.getLng() : null,
           transit: transit,
           price: price,
           youtube_url: youtube,
@@ -1599,6 +1648,12 @@
         activePolygon.myData.amenities = amenities;
         activePolygon.myData.development = development;
         activePolygon.myData.developmentHighlight = developmentHighlight;
+        activePolygon.myData.labelLat = labelOverride
+          ? labelOverride.getLat()
+          : null;
+        activePolygon.myData.labelLng = labelOverride
+          ? labelOverride.getLng()
+          : null;
         activePolygon.myData.transit = transit;
         activePolygon.myData.price = price;
         activePolygon.myData.youtube = youtube;

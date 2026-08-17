@@ -625,7 +625,7 @@
                 var finalIcon = brandData[brand].icon;
 
                 if (!brandData[brand].markers[place.id]) {
-                  var imageSize = new kakao.maps.Size(35, 35);
+                  var imageSize = new kakao.maps.Size(30, 30);
                   var markerImage = new kakao.maps.MarkerImage(
                     finalIcon,
                     imageSize,
@@ -688,7 +688,10 @@
         Object.values(state.markers).forEach((marker) => {
           marker.setMap(state.active ? map : null);
         });
-        if (state.active) updateBrandMarkers();
+        if (state.active) {
+          clearNearbyBrandMarkers(brand); // 상세정보용으로 떠있던 마커와 중복되지 않게 정리
+          updateBrandMarkers();
+        }
         updateBrandToggleBtnState();
       }
 
@@ -904,7 +907,7 @@
         }
       });
 
-      function openInfoPanel(row) {
+      function openInfoPanel(row, bounds) {
         currentRow = row;
         document.getElementById("info-name").textContent = row.name;
         document.getElementById("info-tagline").textContent = row.tagline
@@ -975,6 +978,67 @@
 
         document.getElementById("info-panel").classList.add("open");
         renderCachedFacilities(row.facilities || []);
+        if (bounds) renderNearbyBrandMarkers(bounds);
+      }
+
+      // 폴리곤 바운딩박스를 상하좌우로 meters만큼 넓힘 (경계 기준 버퍼)
+      function padBounds(bounds, meters) {
+        var sw = bounds.getSouthWest();
+        var ne = bounds.getNorthEast();
+        var avgLat = ((sw.getLat() + ne.getLat()) / 2) * (Math.PI / 180);
+        var latPad = meters / 111000;
+        var lngPad = meters / (111000 * Math.cos(avgLat));
+        return new kakao.maps.LatLngBounds(
+          new kakao.maps.LatLng(sw.getLat() - latPad, sw.getLng() - lngPad),
+          new kakao.maps.LatLng(ne.getLat() + latPad, ne.getLng() + lngPad),
+        );
+      }
+
+      // 동네 상세정보를 열 때, 그 동네 경계에서 500m 이내의 자취인프라(다이소·올리브영·스벅·대형슈퍼)를
+      // 자취인프라 토글 상태와 무관하게 정확한 위치 참고용으로 같이 보여줌
+      var BRAND_NEARBY_BUFFER_METERS = 500;
+      var nearbyBrandMarkers = {}; // 상세정보에서 보여준 브랜드별 마커 (토글이 나중에 켜지면 정리용)
+
+      function clearNearbyBrandMarkers(brand) {
+        (nearbyBrandMarkers[brand] || []).forEach(function (marker) {
+          marker.setMap(null);
+        });
+        nearbyBrandMarkers[brand] = [];
+      }
+
+      function renderNearbyBrandMarkers(bounds) {
+        bounds = padBounds(bounds, BRAND_NEARBY_BUFFER_METERS);
+        Object.keys(brandData).forEach(function (brand) {
+          // 자취인프라 토글이 이미 켜진 브랜드는 그쪽 검색이 알아서 보여주니 중복 검색 생략
+          if (brandData[brand].active) return;
+          nearbyBrandMarkers[brand] = nearbyBrandMarkers[brand] || [];
+          var icon = brandData[brand].icon;
+          var handleResults = function (data, status) {
+            if (status !== kakao.maps.services.Status.OK) return;
+            data.forEach(function (place) {
+              var marker = new kakao.maps.Marker({
+                position: new kakao.maps.LatLng(place.y, place.x),
+                image: new kakao.maps.MarkerImage(
+                  icon,
+                  new kakao.maps.Size(30, 30),
+                ),
+                map: map,
+                zIndex: 40,
+              });
+              kakao.maps.event.addListener(marker, "click", function () {
+                if (place.place_url) window.open(place.place_url, "_blank");
+              });
+              subMarkers.push(marker);
+              nearbyBrandMarkers[brand].push(marker);
+            });
+          };
+          brandData[brand].keywords.forEach(function (keyword) {
+            ps.keywordSearch(keyword, handleResults, { bounds: bounds });
+          });
+          (brandData[brand].categories || []).forEach(function (code) {
+            ps.categorySearch(code, handleResults, { bounds: bounds });
+          });
+        });
       }
 
       var selectedNeighborhood = null; // 지금 폴리곤이 펼쳐져 보이는 동네 (한 번에 하나만)
@@ -1034,7 +1098,7 @@
         setTimeout(function () {
           isPolygonClicked = false;
         }, 100);
-        openInfoPanel(n.row);
+        openInfoPanel(n.row, n.bounds);
       }
 
       var stationGroups = [];
@@ -1179,8 +1243,12 @@
           nameLabelEl.style.cssText = isDevHighlighted(row)
             ? NAME_LABEL_STYLE_DEV
             : NAME_LABEL_STYLE;
+          var labelPosition =
+            row.label_lat != null && row.label_lng != null
+              ? new kakao.maps.LatLng(row.label_lat, row.label_lng)
+              : boundsCenter(bounds);
           var nameLabel = new kakao.maps.CustomOverlay({
-            position: boundsCenter(bounds),
+            position: labelPosition,
             content: nameLabelEl,
             map: null,
             yAnchor: 1.3,
