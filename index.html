@@ -22,6 +22,13 @@
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link
+      rel="preload"
+      href="PyeongChangPeace-Bold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -31,10 +38,10 @@
     <style>
       @font-face {
         font-family: "PyeongChangPeace-Bold";
-        src: url("https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2206-02@1.0/PyeongChangPeace-Bold.woff2")
-          format("woff2");
+        src: url("PyeongChangPeace-Bold.woff2") format("woff2");
         font-weight: 700;
         font-style: normal;
+        font-display: block;
         font-display: swap;
       }
 
@@ -174,6 +181,15 @@
         align-items: flex-start;
         flex-wrap: wrap;
         gap: 8px;
+      }
+      /* 초기 축척에서는 개별 동네 기능을 쓰지 않으므로, 데이터 로딩 전 깜빡임도 막는다. */
+      #map-controls .ctrl-wrap,
+      #brand-toggle-btn {
+        visibility: hidden;
+      }
+      #map-wrap.map-controls-ready .ctrl-wrap,
+      #map-wrap.map-controls-ready #brand-toggle-btn {
+        visibility: visible;
       }
 
       .ctrl-wrap {
@@ -526,14 +542,19 @@
         box-shadow: -5px 0 24px rgba(8, 94, 106, 0.16);
         transition: right 0.3s ease-out;
         z-index: 9998;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
       }
       #site-panel.open {
         right: 0;
       }
       #site-panel-scroll {
-        height: 100%;
+        flex: 1;
+        min-height: 0;
         overflow-y: auto;
-        padding-right: 2px;
+        margin-top: 28px;
+        padding-right: 8px;
       }
       .panel-eyebrow {
         margin: 0 0 8px;
@@ -548,12 +569,23 @@
         line-height: 1.35;
         letter-spacing: -0.03em;
       }
+      .story-panel-title {
+        margin-right: 0;
+        font-size: 18px;
+        line-height: 1.45;
+        letter-spacing: -0.045em;
+      }
       .panel-copy {
         margin: 0 0 14px;
         color: var(--ink-soft);
         font-size: 14px;
         line-height: 1.75;
         word-break: keep-all;
+      }
+      .story-panel-copy {
+        margin-bottom: 12px;
+        font-size: 14px;
+        line-height: 1.72;
       }
       .panel-note {
         margin-top: 22px;
@@ -565,10 +597,141 @@
         font-weight: 700;
         line-height: 1.6;
       }
+      .story-channel-links {
+        display: none;
+        gap: 8px;
+        margin-top: 12px;
+        flex-shrink: 0;
+      }
+      .story-channel-links.open {
+        display: grid;
+      }
+      .story-channel-link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 12px 14px;
+        border: 0;
+        border-radius: 10px;
+        box-sizing: border-box;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 800;
+        text-align: left;
+      }
+      .story-channel-link.youtube {
+        background: #fdeaea;
+        color: #c0392b;
+      }
+      .story-channel-link.blog {
+        background: #e7f7ee;
+        color: #059e4a;
+      }
+      .story-channel-link:disabled {
+        cursor: default;
+        opacity: 0.72;
+      }
+      .story-channel-link small {
+        font-size: 11px;
+        font-weight: 700;
+      }
       .neighborhood-list {
         display: flex;
         flex-direction: column;
         gap: 8px;
+      }
+      .station-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .station-group {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fff;
+        overflow: hidden;
+      }
+      .station-group-summary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px;
+        color: var(--brand-teal-dark);
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+        list-style: none;
+      }
+      .station-line-badges {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        flex-shrink: 0;
+      }
+      .station-line-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 19px;
+        height: 19px;
+        padding: 0 3px;
+        border-radius: 50%;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 900;
+        line-height: 1;
+        box-sizing: border-box;
+      }
+      .station-line-1 {
+        background: #0052a4;
+      }
+      .station-line-2 {
+        background: #00a84d;
+      }
+      .station-line-4 {
+        background: #00a5de;
+      }
+      .station-line-5 {
+        background: #996cac;
+      }
+      .station-line-9 {
+        background: #b39e35;
+      }
+      .station-line-sillim {
+        background: #6789ca;
+        font-size: 8px;
+      }
+      .station-group-name {
+        white-space: nowrap;
+      }
+      .station-group-summary::-webkit-details-marker {
+        display: none;
+      }
+      .station-group-summary::after {
+        content: "⌄";
+        margin-left: auto;
+        color: var(--ink-soft);
+        font-size: 16px;
+        transition: transform 0.15s ease;
+      }
+      .station-group[open] .station-group-summary {
+        border-bottom: 1px solid var(--line);
+        background: var(--brand-teal-tint);
+      }
+      .station-group[open] .station-group-summary::after {
+        transform: rotate(180deg);
+      }
+      .station-group-count {
+        color: var(--ink-soft);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .station-group-items {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px;
       }
       .neighborhood-list-item {
         width: 100%;
@@ -601,10 +764,10 @@
       }
       .map-guide {
         position: absolute;
-        top: 68px;
+        top: 12px;
         left: 50%;
         max-width: 300px;
-        padding: 11px 38px 11px 13px;
+        padding: 11px 13px;
         border: 1px solid var(--line);
         border-radius: 12px;
         background: rgba(255, 255, 255, 0.96);
@@ -618,6 +781,10 @@
       }
       .map-guide strong {
         color: var(--brand-teal-dark);
+      }
+      .map-guide-copy {
+        display: block;
+        white-space: nowrap;
       }
       .map-guide-close {
         position: absolute;
@@ -655,7 +822,7 @@
           right: 0;
           bottom: -100%;
           width: 100%;
-          height: auto;
+          height: 72vh;
           max-height: 72vh;
           padding: 30px 22px 22px;
           border-radius: 16px 16px 0 0;
@@ -686,12 +853,17 @@
         #site-panel-scroll {
           overscroll-behavior-y: contain;
         }
+        #site-panel-scroll {
+          margin-top: 0;
+          padding-right: 2px;
+          -webkit-overflow-scrolling: touch;
+          touch-action: pan-y;
+        }
         .map-guide {
-          top: 66px;
+          top: 10px;
           left: 50%;
-          width: calc(100% - 24px);
-          max-width: 360px;
-          padding-right: 38px;
+          width: fit-content;
+          max-width: calc(100% - 36px);
           font-size: 12px;
         }
       }
@@ -719,18 +891,20 @@
           ☰
         </button>
         <nav class="site-menu" id="site-menu" aria-label="사이트 메뉴">
-          <button class="site-menu-item" type="button" onclick="openStoryPanel()">
+          <button
+            class="site-menu-item"
+            type="button"
+            onclick="openStoryPanel()"
+          >
             ✦ 어디살까 이야기
           </button>
-          <button class="site-menu-item" type="button" onclick="openNeighborhoodList()">
-            🗺️ 동네 둘러보기
+          <button
+            class="site-menu-item"
+            type="button"
+            onclick="openNeighborhoodList()"
+          >
+            🗺️ 동네 목록
           </button>
-          <span class="site-menu-item is-soon" aria-disabled="true">
-            ▶ 영상으로 보기 <small>준비 중</small>
-          </span>
-          <span class="site-menu-item is-soon" aria-disabled="true">
-            ✎ 글로 자세히 보기 <small>준비 중</small>
-          </span>
           <span class="site-menu-item is-soon" aria-disabled="true">
             ✉ 동네 제보·의견 보내기 <small>준비 중</small>
           </span>
@@ -738,8 +912,8 @@
       </div>
     </div>
 
-      <div id="map-wrap">
-        <div id="map"></div>
+    <div id="map-wrap">
+      <div id="map"></div>
       <div id="map-controls">
         <div class="ctrl-wrap">
           <button
@@ -762,9 +936,9 @@
             </button>
             <button class="ctrl-option" onclick="selectTheme('산책')">
               🚶 산책 지도
-          </button>
+            </button>
+          </div>
         </div>
-      </div>
         <button
           class="ctrl-btn"
           id="brand-toggle-btn"
@@ -775,7 +949,12 @@
       </div>
       <div class="map-guide" id="map-guide">
         <strong>어디부터 볼까요?</strong><br />
-        역 이름을 눌러 추천 동네를 펼쳐보고, 동네를 누르면 실제 답사 정보를 확인해보세요.
+        <span class="map-guide-copy"
+          >역 이름을 눌러 궁금한 동네를 펼쳐보세요.</span
+        >
+        <span class="map-guide-copy"
+          >동네를 누르면 직접 답사한 정보를 볼 수 있어요.</span
+        >
         <button
           class="map-guide-close"
           type="button"
@@ -787,8 +966,8 @@
       </div>
     </div>
 
-      <div id="info-panel">
-        <div class="sheet-handle" aria-hidden="true"></div>
+    <div id="info-panel">
+      <div class="sheet-handle" aria-hidden="true"></div>
       <button class="close-btn" onclick="closeInfoPanel()">&times;</button>
       <button
         class="copy-btn"
@@ -814,26 +993,39 @@
           ></path>
         </svg>
       </button>
-        <div id="info-scroll">
-          <h3 id="info-name"></h3>
-          <div id="info-tagline"></div>
-          <div id="info-specs"></div>
-          <div id="info-facts">
-            <div id="info-amenities"></div>
-            <div id="info-facility-summary"></div>
-          </div>
-          <div id="info-desc"></div>
+      <div id="info-scroll">
+        <h3 id="info-name"></h3>
+        <div id="info-tagline"></div>
+        <div id="info-specs"></div>
+        <div id="info-facts">
+          <div id="info-amenities"></div>
+          <div id="info-facility-summary"></div>
         </div>
-      <div id="info-links"></div>
+        <div id="info-desc"></div>
       </div>
+      <div id="info-links"></div>
+    </div>
 
-      <aside id="site-panel" aria-live="polite">
-        <div class="sheet-handle" aria-hidden="true"></div>
-        <button class="close-btn" type="button" aria-label="패널 닫기" onclick="closeSitePanel()">
-          &times;
+    <aside id="site-panel" aria-live="polite">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <button
+        class="close-btn"
+        type="button"
+        aria-label="패널 닫기"
+        onclick="closeSitePanel()"
+      >
+        &times;
+      </button>
+      <div id="site-panel-scroll"></div>
+      <div id="story-channel-links" class="story-channel-links">
+        <button class="story-channel-link youtube" type="button" disabled>
+          ▶ 유튜브에서 답사 영상 보기 <small>준비 중</small>
         </button>
-        <div id="site-panel-scroll"></div>
-      </aside>
+        <button class="story-channel-link blog" type="button" disabled>
+          ✎ 블로그에서 답사 기행 읽기 <small>준비 중</small>
+        </button>
+      </div>
+    </aside>
 
     <script
       type="text/javascript"
@@ -859,17 +1051,30 @@
         var menu = document.getElementById("site-menu");
         var btn = document.getElementById("site-menu-btn");
         var willOpen = !menu.classList.contains("open");
+        if (willOpen) {
+          // 모바일에서는 헤더가 패널 위에 남으므로, 메뉴를 열 때 다른 정보 화면을 정리한다.
+          closeInfoPanel();
+          closeSitePanel();
+        }
         menu.classList.toggle("open", willOpen);
         btn.setAttribute("aria-expanded", String(willOpen));
       }
 
       function closeSiteMenu() {
         document.getElementById("site-menu").classList.remove("open");
-        document.getElementById("site-menu-btn").setAttribute("aria-expanded", "false");
+        document
+          .getElementById("site-menu-btn")
+          .setAttribute("aria-expanded", "false");
       }
 
       function closeSitePanel() {
         document.getElementById("site-panel").classList.remove("open");
+      }
+
+      function setStoryChannelLinks(visible) {
+        document
+          .getElementById("story-channel-links")
+          .classList.toggle("open", visible);
       }
 
       function openSitePanel() {
@@ -883,59 +1088,127 @@
         var panel = document.getElementById("site-panel-scroll");
         panel.innerHTML =
           '<p class="panel-eyebrow">ABOUT ODILIVE</p>' +
-          '<h2 class="panel-title">직접 걸어보고,<br />자취 기준으로 고릅니다.</h2>' +
-          '<p class="panel-copy">자취할 동네를 고를 때 매물 정보만으로는 알 수 없는 것들이 많았습니다. 낮과 밤의 분위기, 장을 보기 편한지, 지하철을 타기까지의 동선처럼 실제 생활에서 중요한 것들을 직접 보고 기록합니다.</p>' +
-          '<p class="panel-copy">어디살까는 한 사람의 답사 경험을 시작점으로, 자취생이 자기에게 맞는 동네를 조금 더 쉽게 고를 수 있도록 돕는 지도입니다.</p>' +
-          '<div class="panel-note">영상에서는 동네의 분위기를, 글에서는 자세한 근거를, 지도에서는 선택에 필요한 핵심 정보를 전합니다.</div>';
+          '<h2 class="panel-title story-panel-title">동네를 고른다는 건,<br />삶의 방식을 선택하는 일 아닐까요?</h2>' +
+          '<p class="panel-copy story-panel-copy">이사를 앞두고 우리는 매물과 가격을 먼저 살펴봅니다. 하지만 막상 살아보면, 매물표에는 담기지 않는 동네의 표정이 보입니다. 혼자 편히 밥을 먹을 곳이 있는지, 오래 머물며 책을 읽을 공간이 있는지, 주말에 느긋하게 산책하기 좋은 길이 있는지. 어디살까는 그런 동네의 숨은 매력을 직접 다녀보고 기록합니다.</p>' +
+          '<p class="panel-copy story-panel-copy">하지만 진짜 좋은 동네는 누군가가 찾아주는 것이 아니라, 주민들이 자기 동네에 관심을 갖고 함께 만들어가는 것이라고 믿습니다. 지금은 자취생이 자신에게 맞는 동네를 찾도록 돕는 서비스이지만, 언젠가는 더 다양한 사람들이 좋은 동네를 만들어가기 위해 소통하는 공간이 되고 싶습니다.</p>';
+        setStoryChannelLinks(true);
         openSitePanel();
+      }
+
+      // 현재 서비스에 등장하는 역의 노선 정보. 전체 역 마스터 구축 전까지 목록 표시에만 사용한다.
+      var stationLines = {
+        낙성대역: ["2"],
+        노량진역: ["1", "9"],
+        대방역: ["1", "sillim"],
+        봉천역: ["2"],
+        사당역: ["2", "4"],
+        서울대입구역: ["2"],
+        신길역: ["1", "5"],
+        신림역: ["2", "sillim"],
+      };
+      var stationLineLabels = {
+        1: "1",
+        2: "2",
+        4: "4",
+        5: "5",
+        9: "9",
+        sillim: "신림",
+      };
+
+      function createStationLineBadges(station) {
+        var badges = document.createElement("span");
+        badges.className = "station-line-badges";
+        (stationLines[station] || []).forEach(function (line) {
+          var badge = document.createElement("span");
+          badge.className = "station-line-badge station-line-" + line;
+          badge.textContent = stationLineLabels[line];
+          badge.setAttribute(
+            "aria-label",
+            line === "sillim" ? "신림선" : stationLineLabels[line] + "호선",
+          );
+          badges.appendChild(badge);
+        });
+        return badges;
       }
 
       function openNeighborhoodList() {
         var panel = document.getElementById("site-panel-scroll");
+        setStoryChannelLinks(false);
         panel.innerHTML =
           '<p class="panel-eyebrow">NEIGHBORHOODS</p>' +
-          '<h2 class="panel-title">어떤 동네를 찾고 있나요?</h2>' +
-          '<p class="panel-copy">동네를 누르면 지도에서 위치와 답사 정보를 바로 확인할 수 있어요.</p>' +
-          '<div class="neighborhood-list" id="neighborhood-list"></div>';
+          '<h2 class="panel-title">어느 역 근처를 보고 싶나요?</h2>' +
+          '<p class="panel-copy">역을 눌러 동네를 펼쳐보고, 동네를 누르면 지도에서 위치와 답사 정보를 바로 확인할 수 있어요.</p>' +
+          '<div class="station-list" id="neighborhood-list"></div>';
         var list = document.getElementById("neighborhood-list");
+        var groups = {};
         neighborhoods
           .slice()
           .sort(function (a, b) {
             return a.row.name.localeCompare(b.row.name, "ko");
           })
           .forEach(function (n) {
-            var item = document.createElement("button");
-            item.type = "button";
-            item.className = "neighborhood-list-item";
-            var name = document.createElement("strong");
-            name.textContent = n.row.name;
-            var summary = document.createElement("span");
-            summary.textContent = n.row.tagline || "답사 정보 보기";
-            item.appendChild(name);
-            item.appendChild(summary);
-            item.addEventListener("click", function () {
-              closeSitePanel();
-              map.setBounds(n.bounds);
-              if (map.getLevel() > NEIGHBORHOOD_ZOOM_THRESHOLD) {
-                map.setLevel(NEIGHBORHOOD_ZOOM_THRESHOLD);
-              }
-              updateNeighborhoodVisibility();
-              selectNeighborhood(n);
+            var station = (n.row.station || "").trim();
+            if (!station) return;
+            if (!groups[station]) groups[station] = [];
+            groups[station].push(n);
+          });
+
+        Object.keys(groups)
+          .sort(function (a, b) {
+            return a.localeCompare(b, "ko");
+          })
+          .forEach(function (station) {
+            var group = document.createElement("details");
+            group.className = "station-group";
+            var summary = document.createElement("summary");
+            summary.className = "station-group-summary";
+            summary.appendChild(createStationLineBadges(station));
+            var stationName = document.createElement("span");
+            stationName.className = "station-group-name";
+            stationName.textContent = station;
+            summary.appendChild(stationName);
+            var count = document.createElement("span");
+            count.className = "station-group-count";
+            count.textContent = groups[station].length + "곳";
+            summary.appendChild(count);
+            var items = document.createElement("div");
+            items.className = "station-group-items";
+
+            groups[station].forEach(function (n) {
+              var item = document.createElement("button");
+              item.type = "button";
+              item.className = "neighborhood-list-item";
+              var name = document.createElement("strong");
+              name.textContent = n.row.name;
+              var tagline = document.createElement("span");
+              tagline.textContent = n.row.tagline || "답사 정보 보기";
+              item.appendChild(name);
+              item.appendChild(tagline);
+              item.addEventListener("click", function () {
+                closeSitePanel();
+                map.setBounds(n.bounds);
+                if (map.getLevel() > NEIGHBORHOOD_ZOOM_THRESHOLD) {
+                  map.setLevel(NEIGHBORHOOD_ZOOM_THRESHOLD);
+                }
+                updateNeighborhoodVisibility();
+                selectNeighborhood(n);
+              });
+              items.appendChild(item);
             });
-            list.appendChild(item);
+
+            group.appendChild(summary);
+            group.appendChild(items);
+            list.appendChild(group);
           });
         if (!neighborhoods.length) {
           list.textContent = "동네 정보를 불러오는 중입니다.";
+        } else if (!Object.keys(groups).length) {
+          list.textContent = "둘러볼 역세권 동네를 준비 중입니다.";
         }
         openSitePanel();
       }
 
       function closeMapGuide() {
-        document.getElementById("map-guide").style.display = "none";
-        sessionStorage.setItem("odilive-map-guide-dismissed", "true");
-      }
-
-      if (sessionStorage.getItem("odilive-map-guide-dismissed") === "true") {
         document.getElementById("map-guide").style.display = "none";
       }
 
@@ -1134,6 +1407,7 @@
       // 다이소·올리브영·스벅·대형슈퍼를 "우리가 정한 인프라 세트"로 한 번에 켜고 끔
       function toggleAllBrands() {
         closeMapGuide();
+        closeSiteMenu();
         var allActive = Object.keys(brandData).every(function (brand) {
           return brandData[brand].active;
         });
@@ -1144,13 +1418,16 @@
 
       function toggleThemePanel() {
         closeMapGuide();
+        closeSiteMenu();
         document.getElementById("theme-panel").classList.toggle("open");
       }
 
       kakao.maps.event.addListener(map, "idle", updateBrandMarkers);
       kakao.maps.event.addListener(map, "zoom_changed", function () {
+        closeMapGuide();
         updateNeighborhoodVisibility();
       });
+      kakao.maps.event.addListener(map, "dragstart", closeMapGuide);
       updateBrandMarkers();
 
       // ── 저장된 동네 불러오기 (읽기 전용) ──
@@ -1401,7 +1678,7 @@
             row.blog_url +
             '" target="_blank">' +
             NAVER_ICON +
-            " 소개글 전문</a>";
+            " 답사 기행 읽기</a>";
         document.getElementById("info-links").innerHTML = links;
 
         document.getElementById("info-panel").classList.add("open");
@@ -1513,6 +1790,7 @@
       // 이름표를 클릭했을 때: 그 동네만 폴리곤을 펼치고, 이전에 펼쳐져 있던 폴리곤은 접음
       function selectNeighborhood(n) {
         closeMapGuide();
+        closeSiteMenu();
         if (selectedNeighborhood && selectedNeighborhood !== n) {
           selectedNeighborhood.polygon.setMap(null);
           selectedNeighborhood.labelEl.style.cssText = labelStyleFor(
@@ -1562,6 +1840,7 @@
           : "none";
         document.getElementById("brand-toggle-btn").style.display =
           showIndividual ? "" : "none";
+        document.getElementById("map-wrap").classList.add("map-controls-ready");
         if (!showIndividual) {
           closeInfoPanel(); // 축소되면 선택 해제 + 펼쳐진 폴리곤·이모지·패널 정리
         }
@@ -1615,6 +1894,7 @@
           el.addEventListener("click", function (e) {
             e.stopPropagation();
             closeMapGuide();
+            closeSiteMenu();
             isPolygonClicked = true;
             setTimeout(function () {
               isPolygonClicked = false;
@@ -1744,6 +2024,7 @@
 
       kakao.maps.event.addListener(map, "click", function () {
         closeMapGuide();
+        closeSiteMenu();
         if (!isPolygonClicked) {
           closeInfoPanel();
           closeSitePanel();

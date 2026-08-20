@@ -141,6 +141,21 @@
         background: var(--brand-teal-dark);
         color: white;
       }
+      .btn-rescan-all {
+        background: #6f4aa8;
+        color: white;
+      }
+      .btn-rescan-all:disabled {
+        cursor: wait;
+        opacity: 0.65;
+        transform: none;
+      }
+      .rescan-status {
+        margin-right: 8px;
+        color: #6f4aa8;
+        font-size: 12px;
+        font-weight: bold;
+      }
 
       /* 필터 버튼 공통 정렬 및 패딩 조절 */
       .filter {
@@ -427,6 +442,15 @@
         onclick="toggleCurationPanel()"
       >
         📌 큐레이션 관리
+      </button>
+      <span id="full-rescan-status" class="rescan-status"></span>
+      <button
+        id="btnRescanAll"
+        class="btn btn-rescan-all"
+        style="margin-right: 8px"
+        onclick="rescanAllFacilities()"
+      >
+        🔄 전체 시설 재스캔
       </button>
       <button id="btnStart" class="btn btn-start" onclick="toggleDrawing(true)">
         📍 새 동네 영역 그리기
@@ -854,6 +878,10 @@
       var vertexMarkers = [];
       var midpointMarkers = [];
       var isEditingBoundary = false;
+      var boundaryChangedDuringEdit = false;
+      var isFacilityScanRunning = false;
+      var savedPolygons = [];
+      var LAST_FULL_RESCAN_KEY = "odilive-last-full-facility-rescan";
 
       function isPointInPolygon(point, polygonPoints) {
         var lat = point.getLat();
@@ -887,13 +915,57 @@
         subMarkers = [];
       }
 
-      // [추가] 클릭된 폴리곤 내부의 편·약·빨을 스캔해서 이모지를 띄우는 핵심 함수
-      function scanFacilitiesInPolygon(polygon) {
-        clearSubMarkers(); // 기존에 켜져 있던 마커 청소
-        lastScanFacilities = [];
+      function openPolygonDetails(polygon) {
+        isPolygonClicked = true;
+        openSidebar(polygon);
+
+        if (polygon.myData.saved) {
+          renderCachedFacilities(polygon.myData.facilities || [], polygon);
+        } else {
+          scanFacilitiesInPolygon(polygon);
+        }
+
+        // 마커·오버레이 클릭 뒤 이어지는 지도 click 이벤트가 사이드바를 닫지 않도록 잠시 유지
+        setTimeout(function () {
+          isPolygonClicked = false;
+        }, 300);
+      }
+
+      function createFacilityOverlay(polygon, position, emoji) {
+        var element = document.createElement("div");
+        element.style.cssText =
+          "font-size:16px; line-height:1; filter:drop-shadow(0 2px 2px rgba(0,0,0,.3)); cursor:pointer; user-select:none;";
+        element.textContent = emoji;
+
+        ["mousedown", "touchstart"].forEach(function (eventName) {
+          element.addEventListener(eventName, function (event) {
+            event.stopPropagation();
+          });
+        });
+        element.addEventListener("click", function (event) {
+          event.stopPropagation();
+          openPolygonDetails(polygon);
+        });
+
+        return new kakao.maps.CustomOverlay({
+          position: position,
+          content: element,
+          xAnchor: 0.5,
+          yAnchor: 0.5,
+        });
+      }
+
+      // 폴리곤 내부의 편·약·빨을 스캔한다. 화면 표시 여부와 무관하게 완료 시 시설 목록을 반환한다.
+      function scanFacilitiesInPolygon(polygon, options) {
+        options = options || {};
+        var shouldRender = options.render !== false;
+        var shouldStoreLast = options.storeLast !== false;
+        if (shouldRender) clearSubMarkers();
+        var facilities = [];
+        var seenPlaceIds = {};
 
         var path = polygon.getPath(); // 폴리곤 꼭짓점 좌표들
-        if (path.length === 0) return;
+        if (path.length === 0) return Promise.resolve(facilities);
 
         // [추천] 폴리곤 전체를 감싸는 사각 영역(Bounds)을 계산하여 검색 정확도 극대화
         var bounds = new kakao.maps.LatLngBounds();
@@ -908,88 +980,82 @@
           { type: "keyword", code: "셀프빨래방", emoji: "🧺" },
         ];
 
-        searchTargets.forEach(function (target) {
-          // 첫 점 기준 2km 대신, 폴리곤 사각 영역(bounds) 내를 검색하도록 옵션 변경
-          var searchOptions = {
-            bounds: bounds,
-            size: 15, // 한 페이지에 15개씩
-          };
+        return new Promise(function (resolve) {
+          var targetIndex = 0;
 
-          // 카카오 검색 콜백 함수 (pagination 매개변수 추가)
-          var callback = function (data, status, pagination) {
-            if (status === kakao.maps.services.Status.OK) {
-              data.forEach(function (place) {
-                var placeLatLng = new kakao.maps.LatLng(place.y, place.x);
+          function scanNextTarget() {
+            if (targetIndex >= searchTargets.length) {
+              if (shouldStoreLast) lastScanFacilities = facilities;
+              resolve(facilities);
+              return;
+            }
 
-                // 검색된 장소가 진짜 폴리곤 내부(안쪽)에 있는 녀석인지 검사
-                if (isPointInPolygon(placeLatLng, path)) {
-                  // 중복 마커 생성 방지 (동일한 장소가 여러 페이지에서 중복 검출될 때 방어)
-                  var isDuplicate = subMarkers.some(function (marker) {
-                    var pos = marker.getPosition();
-                    return (
-                      pos.getLat() === placeLatLng.getLat() &&
-                      pos.getLng() === placeLatLng.getLng()
-                    );
-                  });
-
-                  if (!isDuplicate) {
-                    var content = `
-                      <div style="font-size: 16px; line-height: 1; filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.3)); cursor: default; user-select: none;">
-                        ${target.emoji}
-                      </div>
-                    `;
-
-                    var customOverlay = new kakao.maps.CustomOverlay({
-                      position: placeLatLng,
-                      content: content,
-                      xAnchor: 0.5,
-                      yAnchor: 0.5,
-                    });
-
-                    customOverlay.setMap(map);
-                    subMarkers.push(customOverlay);
-                    lastScanFacilities.push({
+            var target = searchTargets[targetIndex++];
+            var pageCount = 0;
+            var searchOptions = { bounds: bounds, size: 15 };
+            var callback = function (data, status, pagination) {
+              if (status === kakao.maps.services.Status.OK) {
+                data.forEach(function (place) {
+                  var placeLatLng = new kakao.maps.LatLng(place.y, place.x);
+                  var placeKey = target.code + ":" + place.id;
+                  if (
+                    isPointInPolygon(placeLatLng, path) &&
+                    !seenPlaceIds[placeKey]
+                  ) {
+                    seenPlaceIds[placeKey] = true;
+                    facilities.push({
                       type: target.code,
                       emoji: target.emoji,
                       name: place.place_name,
                       lat: parseFloat(place.y),
                       lng: parseFloat(place.x),
                     });
+                    if (shouldRender) {
+                      var customOverlay = createFacilityOverlay(
+                        polygon,
+                        placeLatLng,
+                        target.emoji,
+                      );
+                      customOverlay.setMap(map);
+                      subMarkers.push(customOverlay);
+                    }
                   }
-                }
-              });
-
-              // [핵심 추가] 다음 페이지 결과가 더 있다면(최대 3페이지, 45개까지) 자동으로 이어서 검색!
-              if (pagination.hasNextPage) {
-                pagination.nextPage();
+                });
               }
-            }
-          };
 
-          // 검색 실행
-          if (target.type === "category") {
-            ps.categorySearch(target.code, callback, searchOptions);
-          } else {
-            ps.keywordSearch(target.code, callback, searchOptions);
+              pageCount += 1;
+              if (
+                status === kakao.maps.services.Status.OK &&
+                pagination &&
+                pagination.hasNextPage &&
+                pageCount < 3
+              ) {
+                pagination.nextPage();
+              } else {
+                scanNextTarget();
+              }
+            };
+
+            if (target.type === "category") {
+              ps.categorySearch(target.code, callback, searchOptions);
+            } else {
+              ps.keywordSearch(target.code, callback, searchOptions);
+            }
           }
+
+          scanNextTarget();
         });
       }
 
       // [추가] DB에 저장된 편·약·빨 스냅샷을 그대로 이모지로 표출 (카카오 API 재호출 없음)
-      function renderCachedFacilities(facilities) {
+      function renderCachedFacilities(facilities, polygon) {
         clearSubMarkers();
         facilities.forEach(function (f) {
-          var content = `
-            <div style="font-size: 16px; line-height: 1; filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.3)); cursor: default; user-select: none;">
-              ${f.emoji}
-            </div>
-          `;
-          var customOverlay = new kakao.maps.CustomOverlay({
-            position: new kakao.maps.LatLng(f.lat, f.lng),
-            content: content,
-            xAnchor: 0.5,
-            yAnchor: 0.5,
-          });
+          var customOverlay = createFacilityOverlay(
+            polygon,
+            new kakao.maps.LatLng(f.lat, f.lng),
+            f.emoji,
+          );
           customOverlay.setMap(map);
           subMarkers.push(customOverlay);
         });
@@ -1153,25 +1219,13 @@
       // [추가] 새로 그린 폴리곤과, DB에서 불러온 폴리곤에 공통으로 이벤트를 연결
       function attachPolygonEvents(polygon) {
         var internalHandler = function (e) {
-          if (e.preventMap) e.preventMap();
-          if (e.domEvent && e.domEvent.stopPropagation)
+          if (e && e.preventMap) e.preventMap();
+          if (e && e.domEvent && e.domEvent.stopPropagation) {
             e.domEvent.stopPropagation();
-          isPolygonClicked = true;
-          setTimeout(function () {
-            isPolygonClicked = false;
-          }, 100);
-          openSidebar(polygon);
-
-          if (polygon.myData.saved) {
-            // 이미 저장된 동네는 DB에 스냅샷된 결과를 그대로 표출 (API 재호출 없음)
-            renderCachedFacilities(polygon.myData.facilities || []);
-          } else {
-            // 아직 저장 전인 새 폴리곤은 실시간으로 스캔
-            scanFacilitiesInPolygon(polygon);
           }
+          openPolygonDetails(polygon);
         };
 
-        kakao.maps.event.addListener(polygon, "mousedown", internalHandler);
         kakao.maps.event.addListener(polygon, "click", internalHandler);
         kakao.maps.event.addListener(polygon, "mouseover", function () {
           mapContainer.classList.add("poly-hover");
@@ -1256,9 +1310,89 @@
             saved: true,
           };
           attachPolygonEvents(polygon);
+          savedPolygons.push(polygon);
         });
       }
       loadNeighborhoods();
+
+      function updateFullRescanStatus(message) {
+        var statusEl = document.getElementById("full-rescan-status");
+        if (!statusEl) return;
+        if (message) {
+          statusEl.textContent = message;
+          return;
+        }
+        var lastRun = localStorage.getItem(LAST_FULL_RESCAN_KEY);
+        statusEl.textContent = lastRun
+          ? "마지막 전체 재스캔: " +
+            new Intl.DateTimeFormat("ko-KR", {
+              dateStyle: "short",
+              timeStyle: "short",
+            }).format(new Date(lastRun))
+          : "아직 전체 재스캔 기록이 없습니다";
+      }
+
+      async function rescanAllFacilities() {
+        if (isFacilityScanRunning) {
+          alert("다른 시설 스캔이 끝난 뒤 다시 시도해주세요.");
+          return;
+        }
+        if (savedPolygons.length === 0) {
+          alert("재스캔할 저장된 동네가 없습니다.");
+          return;
+        }
+        if (
+          !confirm(
+            savedPolygons.length +
+              "개 동네의 편의점·약국·빨래방 정보를 다시 검색해 저장합니다. 계속할까요?",
+          )
+        ) {
+          return;
+        }
+
+        var button = document.getElementById("btnRescanAll");
+        isFacilityScanRunning = true;
+        button.disabled = true;
+        var failures = [];
+
+        try {
+          for (var i = 0; i < savedPolygons.length; i++) {
+            var polygon = savedPolygons[i];
+            var name = polygon.myData.name || "이름 없는 동네";
+            updateFullRescanStatus(
+              "전체 재스캔 " + (i + 1) + "/" + savedPolygons.length + ": " + name,
+            );
+            var facilities = await scanFacilitiesInPolygon(polygon, {
+              render: false,
+              storeLast: false,
+            });
+            var { error } = await sb
+              .from("neighborhoods")
+              .update({ facilities: facilities })
+              .eq("id", polygon.myData.id);
+            if (error) {
+              console.error("시설 일괄 재스캔 저장 실패:", name, error);
+              failures.push(name);
+            } else {
+              polygon.myData.facilities = facilities;
+            }
+          }
+
+          if (failures.length === 0) {
+            localStorage.setItem(LAST_FULL_RESCAN_KEY, new Date().toISOString());
+            updateFullRescanStatus();
+            alert("전체 " + savedPolygons.length + "개 동네 재스캔이 완료되었습니다.");
+          } else {
+            updateFullRescanStatus("일부 저장 실패: " + failures.join(", "));
+            alert("일부 동네 저장에 실패했습니다: " + failures.join(", "));
+          }
+        } finally {
+          isFacilityScanRunning = false;
+          button.disabled = false;
+        }
+      }
+
+      updateFullRescanStatus();
 
       function openSidebar(poly) {
         endBoundaryEdit(); // 다른 폴리곤을 열 때 이전 경계 수정 상태 정리
@@ -1350,6 +1484,9 @@
         kakao.maps.event.addListener(labelMarker, "dragend", function () {
           labelOverride = labelMarker.getPosition();
         });
+        kakao.maps.event.addListener(labelMarker, "click", function () {
+          openPolygonDetails(poly);
+        });
       }
 
       function hideLabelMarker() {
@@ -1413,9 +1550,21 @@
       function toggleBoundaryEdit() {
         if (!activePolygon || isDrawing) return;
         if (isEditingBoundary) {
-          endBoundaryEdit();
+          finishBoundaryEdit();
         } else {
           startBoundaryEdit();
+        }
+      }
+
+      async function finishBoundaryEdit() {
+        var boundaryChanged = boundaryChangedDuringEdit;
+        endBoundaryEdit();
+        if (!boundaryChanged) return;
+        var completed = await rescanFacilities({ silent: true });
+        if (completed) {
+          alert(
+            "경계 변경에 맞춰 시설 정보를 다시 스캔했습니다. '수정' 버튼을 눌러 저장해주세요.",
+          );
         }
       }
 
@@ -1423,6 +1572,7 @@
         if (!activePolygon) return;
         clearVertexMarkers();
         isEditingBoundary = true;
+        boundaryChangedDuringEdit = false;
 
         var path = activePolygon.getPath();
 
@@ -1456,6 +1606,7 @@
             // getPath()가 돌려준 배열을 그 자리에서 고치면 카카오맵이 "변경 없음"으로
             // 판단해 다시 그리지 않는 경우가 있어, 새 배열로 복사해서 넘긴다.
             var newPos = vertexMarker.getPosition();
+            boundaryChangedDuringEdit = true;
             var p = activePolygon.getPath().slice();
             p[index] = newPos;
             activePolygon.setPath(p);
@@ -1526,6 +1677,7 @@
         newPath.splice(index, 1);
         activePolygon.setPath(newPath);
         startBoundaryEdit();
+        boundaryChangedDuringEdit = true;
       }
 
       // 변 중간의 + 핸들 클릭 시 그 자리에 새 꼭짓점 삽입
@@ -1534,6 +1686,7 @@
         newPath.splice(index + 1, 0, latlng);
         activePolygon.setPath(newPath);
         startBoundaryEdit();
+        boundaryChangedDuringEdit = true;
       }
 
       function endBoundaryEdit() {
@@ -1555,17 +1708,36 @@
       }
 
       // [추가] 저장된 동네의 편·약·빨을 다시 실시간 스캔 (저장 전까지는 DB에 반영 안 됨)
-      function rescanFacilities() {
-        if (!activePolygon) return;
+      async function rescanFacilities(options) {
+        options = options || {};
+        if (!activePolygon) return false;
+        if (isFacilityScanRunning) {
+          if (!options.silent) {
+            alert("다른 시설 스캔이 끝난 뒤 다시 시도해주세요.");
+          }
+          return false;
+        }
+        isFacilityScanRunning = true;
         activePolygon.myData.pendingRescan = true;
-        scanFacilitiesInPolygon(activePolygon);
-        alert(
-          "다시 스캔했습니다. 지도에서 결과를 확인한 뒤 '수정' 버튼을 눌러야 저장됩니다.",
-        );
+        try {
+          await scanFacilitiesInPolygon(activePolygon);
+          if (!options.silent) {
+            alert(
+              "다시 스캔했습니다. 지도에서 결과를 확인한 뒤 '수정' 버튼을 눌러야 저장됩니다.",
+            );
+          }
+          return true;
+        } finally {
+          isFacilityScanRunning = false;
+        }
       }
 
       async function saveData() {
         if (!activePolygon) return;
+        if (isFacilityScanRunning) {
+          alert("시설 정보를 스캔 중입니다. 완료된 뒤 저장해주세요.");
+          return;
+        }
         var station = document.getElementById("t_station").value.trim();
         var detail = document.getElementById("t_name_detail").value.trim();
         var name = station ? (detail ? station + " " + detail : station) : detail;
