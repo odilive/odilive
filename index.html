@@ -1055,6 +1055,7 @@
           // 모바일에서는 헤더가 패널 위에 남으므로, 메뉴를 열 때 다른 정보 화면을 정리한다.
           closeInfoPanel();
           closeSitePanel();
+          closeMapGuide();
         }
         menu.classList.toggle("open", willOpen);
         btn.setAttribute("aria-expanded", String(willOpen));
@@ -1088,9 +1089,9 @@
         var panel = document.getElementById("site-panel-scroll");
         panel.innerHTML =
           '<p class="panel-eyebrow">ABOUT ODILIVE</p>' +
-          '<h2 class="panel-title story-panel-title">동네를 고른다는 건,<br />삶의 방식을 선택하는 일 아닐까요?</h2>' +
+          '<h2 class="panel-title story-panel-title">어디살까는 왜 동네를 기록할까요?</h2>' +
           '<p class="panel-copy story-panel-copy">이사를 앞두고 우리는 매물과 가격을 먼저 살펴봅니다. 하지만 막상 살아보면, 매물표에는 담기지 않는 동네의 표정이 보입니다. 혼자 편히 밥을 먹을 곳이 있는지, 오래 머물며 책을 읽을 공간이 있는지, 주말에 느긋하게 산책하기 좋은 길이 있는지. 어디살까는 그런 동네의 숨은 매력을 직접 다녀보고 기록합니다.</p>' +
-          '<p class="panel-copy story-panel-copy">하지만 진짜 좋은 동네는 누군가가 찾아주는 것이 아니라, 주민들이 자기 동네에 관심을 갖고 함께 만들어가는 것이라고 믿습니다. 지금은 자취생이 자신에게 맞는 동네를 찾도록 돕는 서비스이지만, 언젠가는 더 다양한 사람들이 좋은 동네를 만들어가기 위해 소통하는 공간이 되고 싶습니다.</p>';
+          '<p class="panel-copy story-panel-copy">하지만 진짜 좋은 동네는 누군가가 찾아주는 것이 아니라, 우리가 동네에 관심을 갖고 만들어가는 것이라고 믿습니다. 지금은 자취하기 좋은 동네를 찾는 서비스이지만, 언젠가는 더 다양한 사람들이 함께 좋은 동네를 만들어가는 소통의 공간이 되고 싶습니다.</p>';
         setStoryChannelLinks(true);
         openSitePanel();
       }
