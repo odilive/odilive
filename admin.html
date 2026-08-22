@@ -107,7 +107,9 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       }
       .draw-mode #map,
-      .draw-mode #map * {
+      .draw-mode #map *,
+      #map.drawing-cursor,
+      #map.drawing-cursor * {
         cursor: crosshair !important;
       }
       .poly-hover {
@@ -130,6 +132,118 @@
       .btn:hover {
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(8, 94, 106, 0.25);
+      }
+      .development-display-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .development-display-option,
+      .development-display-button {
+        display: inline-flex;
+        position: relative;
+        box-sizing: border-box;
+        min-height: 38px;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 8px 12px;
+        border: 1px solid #e3c4ab;
+        border-radius: 10px;
+        background: #fff;
+        color: #7a4b26;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: border-color 0.15s ease, background 0.15s ease,
+          color 0.15s ease;
+      }
+      .development-display-option.is-active {
+        border-color: #c76a15;
+        background: #fff4ea;
+        color: #a95611;
+      }
+      .development-display-option input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .development-toggle-icon {
+        display: inline-flex;
+        width: 16px;
+        height: 16px;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px solid #bd9879;
+        border-radius: 5px;
+        color: transparent;
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .development-display-option.is-active .development-toggle-icon {
+        border-color: #c76a15;
+        background: #c76a15;
+        color: #fff;
+      }
+      .development-boundary-icon {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.7;
+      }
+      .development-display-option:hover,
+      .development-display-button:hover {
+        border-color: #c76a15;
+        background: #fff9f4;
+      }
+      .development-display-option.is-active:hover {
+        background: #fff0e3;
+      }
+      .facility-data-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin: -2px 0 10px;
+      }
+      .facility-display-option {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+        color: #496166;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .facility-display-option input {
+        width: auto;
+        margin: 0;
+        accent-color: var(--brand-teal);
+      }
+      .btn-rescan-facilities {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 5px;
+        padding: 7px 10px;
+        border: 1px solid #b9d0d3;
+        border-radius: 8px;
+        background: #fff;
+        color: var(--brand-teal);
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .btn-rescan-facilities:hover {
+        border-color: var(--brand-teal);
+        background: #f1f8f8;
       }
       .btn-start {
         background: var(--brand-teal);
@@ -215,6 +329,72 @@
       #curation-panel h3 {
         margin: 0 0 12px;
       }
+      .sidebar-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 34px 12px 0;
+      }
+      #sidebar .sidebar-title-row h3 {
+        margin: 0;
+      }
+      .publish-switch {
+        display: inline-flex;
+        position: relative;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .publish-switch input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        padding: 0;
+        opacity: 0;
+      }
+      .publish-switch-track {
+        width: 31px;
+        height: 18px;
+        border-radius: 20px;
+        background: #c9d1d2;
+        transition: background 0.15s ease;
+      }
+      .publish-switch-track::after {
+        content: "";
+        display: block;
+        width: 14px;
+        height: 14px;
+        margin: 2px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        transition: transform 0.15s ease;
+      }
+      .publish-switch input:checked + .publish-switch-track {
+        background: var(--brand-teal);
+      }
+      .publish-switch input:checked + .publish-switch-track::after {
+        transform: translateX(13px);
+      }
+      .publish-switch-state {
+        min-width: 34px;
+        color: #8a989a;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .publish-switch-state::before {
+        content: "비공개";
+      }
+      .publish-switch input:checked ~ .publish-switch-state {
+        color: var(--brand-teal);
+      }
+      .publish-switch input:checked ~ .publish-switch-state::before {
+        content: "공개";
+      }
       #curation-panel select {
         font-family: inherit;
         width: 100%;
@@ -266,6 +446,11 @@
         border-radius: 6px;
         box-sizing: border-box;
         font-size: 13.5px;
+      }
+      #t_development {
+        min-height: 56px;
+        resize: vertical;
+        line-height: 1.45;
       }
       #button-group {
         display: flex;
@@ -461,7 +646,14 @@
 
     <div id="sidebar">
       <button class="close-btn" onclick="closeSidebar()">&times;</button>
-      <h3>🏡 동네 정보</h3>
+      <div class="sidebar-title-row">
+        <h3>🏡 동네 정보</h3>
+        <label class="publish-switch" title="이 동네 공개 여부">
+          <input type="checkbox" id="t_published" />
+          <span class="publish-switch-track" aria-hidden="true"></span>
+          <span class="publish-switch-state" aria-hidden="true"></span>
+        </label>
+      </div>
       <div style="display: flex; gap: 8px">
         <input
           type="text"
@@ -483,30 +675,6 @@
       />
       <input
         type="text"
-        id="t_development"
-        placeholder="🚧 재개발 정보 (예: 사업시행인가 완료(2025) · 관리처분 2027 상반기 예정)"
-      />
-      <label
-        style="
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 9px;
-          font-size: 13.5px;
-          color: #2c3e50;
-          cursor: pointer;
-        "
-      >
-        <input
-          type="checkbox"
-          id="t_development_highlight"
-          checked
-          style="width: auto; margin: 0"
-        />
-        지도에 재개발 강조 표시 (폴리곤·라벨 색상)
-      </label>
-      <input
-        type="text"
         id="t_transit"
         placeholder="🚇 교통 (예: 2호선 낙성대역 · 강남 20분)"
       />
@@ -516,11 +684,90 @@
         placeholder="💰 시세 (예: 원룸 월세 50~70 · 2026.7 기준)"
       />
       <textarea
-        id="t_desc"
-        rows="4"
-        placeholder="이 동네의 특징이나 메모를 적어보세요."
+        id="t_development"
+        rows="2"
+        placeholder="🚧 재개발 정보 (예: 사업시행인가 완료(2025) · 관리처분 2027 상반기 예정)"
       ></textarea>
+      <div
+        id="development-overlay-controls"
+        style="display: none; margin: -2px 0 10px"
+      >
+        <div class="development-display-controls">
+          <label
+            class="development-display-option"
+            id="development-highlight-option"
+          >
+            <input
+              type="checkbox"
+              id="t_development_highlight"
+              onchange="updateDevelopmentOverlayControls()"
+            />
+            <span class="development-toggle-icon" aria-hidden="true">✓</span>
+            전체 재개발 강조
+          </label>
+          <button
+            class="development-display-button"
+            type="button"
+            onclick="startDevelopmentOverlayDrawing()"
+          >
+            <svg class="development-boundary-icon" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M3 5.5 7.5 3l5 2.2 4.5 4.1-2.2 6-6.2 1.6-5.3-4.2Z" />
+              <path d="M10 7v6M7 10h6" />
+            </svg>
+            보조 경계 추가
+          </button>
+        </div>
+        <div
+          id="development-overlay-selected-controls"
+          style="display: none; gap: 8px; margin-top: 8px; align-items: center"
+        >
+          <button
+            class="btn"
+            id="btn-edit-development-overlay"
+            type="button"
+            onclick="startDevelopmentOverlayEdit()"
+            style="background: #fff; color: #c76a15; border: 1px solid #c76a15; white-space: nowrap; flex-shrink: 0"
+          >
+            수정
+          </button>
+          <button
+            class="btn"
+            id="btn-delete-development-overlay"
+            type="button"
+            onclick="deleteSelectedDevelopmentOverlay()"
+            style="background: #fff; color: #c76a15; border: 1px solid #c76a15; white-space: nowrap; flex-shrink: 0"
+          >
+            삭제
+          </button>
+          <input
+            id="t_development_overlay_name"
+            type="text"
+            placeholder="재개발구역 이름"
+            onchange="updateSelectedDevelopmentOverlayName()"
+            style="width: auto; min-width: 0; flex: 1; margin: 0"
+          />
+        </div>
+      </div>
       <div id="amenity-grades" style="margin-bottom: 9px"></div>
+      <div class="facility-data-controls">
+        <label class="facility-display-option">
+          <input
+            type="checkbox"
+            id="t_show_facilities"
+            checked
+          />
+          편의점·약국·빨래방 표시
+        </label>
+        <button
+          id="btn-rescan-facilities"
+          class="btn-rescan-facilities"
+          type="button"
+          onclick="rescanFacilities()"
+          style="display: none"
+        >
+          ↻ 다시 스캔
+        </button>
+      </div>
       <input
         type="text"
         id="t_youtube"
@@ -531,43 +778,6 @@
         id="t_blog"
         placeholder="📝 블로그 소개글 링크 (선택)"
       />
-      <label
-        style="
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 9px;
-          font-size: 13.5px;
-          color: #2c3e50;
-          cursor: pointer;
-        "
-      >
-        <input
-          type="checkbox"
-          id="t_published"
-          style="width: auto; margin: 0"
-        />
-        이 동네를 공개하기 (체크 안 하면 나만 보이는 초안)
-      </label>
-      <label
-        style="
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 9px;
-          font-size: 13.5px;
-          color: #2c3e50;
-          cursor: pointer;
-        "
-      >
-        <input
-          type="checkbox"
-          id="t_show_facilities"
-          checked
-          style="width: auto; margin: 0"
-        />
-        편의점·약국·빨래방 정보 표시
-      </label>
       <button
         id="btn-edit-boundary"
         onclick="toggleBoundaryEdit()"
@@ -873,14 +1083,19 @@
       var startMarker = null;
       var activePolygon = null;
       var isPolygonClicked = false;
+      var ignoreMapCloseUntil = 0;
       var subMarkers = [];
-      var lastScanFacilities = []; // 마지막 라이브 스캔 결과 (저장 시 DB에 스냅샷으로 기록)
       var vertexMarkers = [];
       var midpointMarkers = [];
       var isEditingBoundary = false;
       var boundaryChangedDuringEdit = false;
       var isFacilityScanRunning = false;
       var savedPolygons = [];
+      var drawingMode = "neighborhood";
+      var developmentOverlayPolygons = [];
+      var selectedDevelopmentOverlay = null;
+      var boundaryEditTarget = null;
+      var isEditingDevelopmentOverlay = false;
       var LAST_FULL_RESCAN_KEY = "odilive-last-full-facility-rescan";
 
       function isPointInPolygon(point, polygonPoints) {
@@ -985,7 +1200,9 @@
 
           function scanNextTarget() {
             if (targetIndex >= searchTargets.length) {
-              if (shouldStoreLast) lastScanFacilities = facilities;
+              if (shouldStoreLast) {
+                polygon.myData.lastScanFacilities = facilities;
+              }
               resolve(facilities);
               return;
             }
@@ -1010,7 +1227,7 @@
                       lat: parseFloat(place.y),
                       lng: parseFloat(place.x),
                     });
-                    if (shouldRender) {
+                    if (shouldRender && activePolygon === polygon) {
                       var customOverlay = createFacilityOverlay(
                         polygon,
                         placeLatLng,
@@ -1068,16 +1285,21 @@
         var cancelBtn = document.getElementById("btnCancelDrawing");
         if (status) {
           document.body.classList.add("draw-mode");
+          mapContainer.classList.add("drawing-cursor");
+          mapContainer.classList.remove("poly-hover");
           resetDrawing();
-          closeSidebar();
-          btn.textContent = "🖱️ 그리는 중... (Esc: 취소, Backspace: 마지막 점 취소)";
+          if (drawingMode !== "development") closeSidebar();
+          btn.textContent =
+            "🖱️ 그리는 중... (Esc: 취소, Backspace: 마지막 점 취소)";
           undoBtn.style.display = "inline-flex";
           cancelBtn.style.display = "inline-flex";
         } else {
           document.body.classList.remove("draw-mode");
+          mapContainer.classList.remove("drawing-cursor");
           btn.textContent = "📍 새 동네 영역 그리기";
           undoBtn.style.display = "none";
           cancelBtn.style.display = "none";
+          drawingMode = "neighborhood";
         }
       }
 
@@ -1110,6 +1332,7 @@
 
       // 지도 빈 곳 클릭 리스너
       kakao.maps.event.addListener(map, "click", function () {
+        if (Date.now() < ignoreMapCloseUntil) return;
         if (!isDrawing && !isPolygonClicked && !isPlacingPin) {
           closeSidebar();
           closeCurationPanel();
@@ -1228,14 +1451,236 @@
 
         kakao.maps.event.addListener(polygon, "click", internalHandler);
         kakao.maps.event.addListener(polygon, "mouseover", function () {
+          if (isDrawing) return;
           mapContainer.classList.add("poly-hover");
         });
         kakao.maps.event.addListener(polygon, "mouseout", function () {
+          if (isDrawing) return;
           mapContainer.classList.remove("poly-hover");
         });
       }
 
+      function serializePolygonPath(polygon) {
+        return polygon.getPath().map(function (point) {
+          return { lat: point.getLat(), lng: point.getLng() };
+        });
+      }
+
+      function updateDevelopmentOverlayControls() {
+        var controls = document.getElementById("development-overlay-controls");
+        if (!controls) return;
+        controls.style.display = activePolygon ? "block" : "none";
+        var highlightOption = document.getElementById(
+          "development-highlight-option",
+        );
+        if (highlightOption) {
+          highlightOption.classList.toggle(
+            "is-active",
+            document.getElementById("t_development_highlight").checked,
+          );
+        }
+        document.getElementById("btn-edit-development-overlay").style.display =
+          selectedDevelopmentOverlay ? "inline-flex" : "none";
+        document.getElementById(
+          "btn-delete-development-overlay",
+        ).style.display = selectedDevelopmentOverlay ? "inline-flex" : "none";
+        document.getElementById("t_development_overlay_name").style.display =
+          selectedDevelopmentOverlay ? "block" : "none";
+        document.getElementById(
+          "development-overlay-selected-controls",
+        ).style.display = selectedDevelopmentOverlay ? "flex" : "none";
+      }
+
+      function clearDevelopmentOverlays() {
+        developmentOverlayPolygons.forEach(function (overlay) {
+          overlay.setMap(null);
+        });
+        developmentOverlayPolygons = [];
+        selectedDevelopmentOverlay = null;
+      }
+
+      function setSelectedDevelopmentOverlay(overlay) {
+        developmentOverlayPolygons.forEach(function (item) {
+          item.setOptions({ strokeWeight: 2, fillOpacity: 0.14 });
+        });
+        selectedDevelopmentOverlay = overlay;
+        if (overlay) overlay.setOptions({ strokeWeight: 4, fillOpacity: 0.2 });
+        var overlayIndex = developmentOverlayPolygons.indexOf(overlay);
+        document.getElementById("t_development_overlay_name").value =
+          overlayIndex >= 0 && activePolygon
+            ? activePolygon.myData.developmentOverlays[overlayIndex].name || ""
+            : "";
+        updateDevelopmentOverlayControls();
+      }
+
+      function createDevelopmentOverlay(path) {
+        var overlay = new kakao.maps.Polygon({
+          map: map,
+          path: path,
+          strokeWeight: 2,
+          strokeColor: "#c76a15",
+          strokeOpacity: 0.9,
+          strokeStyle: "dash",
+          fillColor: "#c76a15",
+          fillOpacity: 0.14,
+          zIndex: 40,
+          clickable: true,
+        });
+        kakao.maps.event.addListener(overlay, "click", function (event) {
+          if (event && event.preventMap) event.preventMap();
+          isPolygonClicked = true;
+          setSelectedDevelopmentOverlay(overlay);
+          setTimeout(function () {
+            isPolygonClicked = false;
+          }, 300);
+        });
+        developmentOverlayPolygons.push(overlay);
+        return overlay;
+      }
+
+      function startDevelopmentOverlayDrawing() {
+        if (!activePolygon || isDrawing) return;
+        endBoundaryEdit();
+        drawingMode = "development";
+        toggleDrawing(true);
+      }
+
+      function startDevelopmentOverlayEdit() {
+        if (isEditingBoundary && isEditingDevelopmentOverlay) {
+          finishBoundaryEdit();
+          return;
+        }
+        if (!selectedDevelopmentOverlay || isDrawing) return;
+        endBoundaryEdit();
+        boundaryEditTarget = selectedDevelopmentOverlay;
+        isEditingDevelopmentOverlay = true;
+        startBoundaryEdit();
+      }
+
+      function finishDevelopmentOverlayDrawing() {
+        if (!activePolygon || drawingPoints.length < 3) {
+          cancelPolygonDrawing();
+          return;
+        }
+        var overlay = createDevelopmentOverlay(drawingPoints.slice());
+        activePolygon.myData.developmentOverlays =
+          activePolygon.myData.developmentOverlays || [];
+        activePolygon.myData.developmentOverlays.push({
+          name: "",
+          polygon: serializePolygonPath(overlay),
+        });
+        setSelectedDevelopmentOverlay(overlay);
+        ignoreMapCloseUntil = Date.now() + 500;
+        toggleDrawing(false);
+        resetDrawing();
+      }
+
+      function deleteSelectedDevelopmentOverlay() {
+        if (!activePolygon || !selectedDevelopmentOverlay) return;
+        var index = developmentOverlayPolygons.indexOf(
+          selectedDevelopmentOverlay,
+        );
+        if (index < 0) return;
+        selectedDevelopmentOverlay.setMap(null);
+        developmentOverlayPolygons.splice(index, 1);
+        activePolygon.myData.developmentOverlays.splice(index, 1);
+        selectedDevelopmentOverlay = null;
+        updateDevelopmentOverlayControls();
+      }
+
+      function updateSelectedDevelopmentOverlayName() {
+        if (!activePolygon || !selectedDevelopmentOverlay) return;
+        var index = developmentOverlayPolygons.indexOf(
+          selectedDevelopmentOverlay,
+        );
+        if (index < 0) return;
+        activePolygon.myData.developmentOverlays[index].name = document
+          .getElementById("t_development_overlay_name")
+          .value.trim();
+      }
+
+      function renderDevelopmentOverlays(polygon) {
+        clearDevelopmentOverlays();
+        (polygon.myData.developmentOverlays || []).forEach(function (item) {
+          var path = (item.polygon || []).map(function (point) {
+            return new kakao.maps.LatLng(point.lat, point.lng);
+          });
+          if (path.length >= 3) createDevelopmentOverlay(path);
+        });
+        updateDevelopmentOverlayControls();
+      }
+
+      async function loadDevelopmentOverlays(polygon) {
+        polygon.myData.developmentOverlays =
+          polygon.myData.developmentOverlays || [];
+        if (!polygon.myData.id) {
+          renderDevelopmentOverlays(polygon);
+          return;
+        }
+        var { data, error } = await sb
+          .from("development_overlays")
+          .select("id, name, polygon")
+          .eq("neighborhood_id", polygon.myData.id);
+        if (error) {
+          console.error("재개발 보조 경계 로딩 실패:", error);
+          renderDevelopmentOverlays(polygon);
+          return;
+        }
+        if (activePolygon !== polygon) return;
+        var localNewOverlays = (
+          polygon.myData.developmentOverlays || []
+        ).filter(function (item) {
+          return !item.id;
+        });
+        polygon.myData.developmentOverlays = (data || []).concat(
+          localNewOverlays,
+        );
+        polygon.myData.developmentOverlaysLoaded = true;
+        renderDevelopmentOverlays(polygon);
+      }
+
+      async function saveDevelopmentOverlays(polygon) {
+        if (!polygon.myData.id) return { error: null };
+        if (
+          !(polygon.myData.developmentOverlays || []).length &&
+          !polygon.myData.developmentOverlaysLoaded
+        ) {
+          return { error: null };
+        }
+        var { error: deleteError } = await sb
+          .from("development_overlays")
+          .delete()
+          .eq("neighborhood_id", polygon.myData.id);
+        if (deleteError) return { error: deleteError };
+
+        var rows = (polygon.myData.developmentOverlays || []).map(
+          function (item) {
+            return {
+              neighborhood_id: polygon.myData.id,
+              name: item.name || null,
+              polygon: item.polygon,
+            };
+          },
+        );
+        if (!rows.length) {
+          polygon.myData.developmentOverlays = [];
+          return { error: null };
+        }
+        var { data: savedRows, error: insertError } = await sb
+          .from("development_overlays")
+          .insert(rows)
+          .select("id, name, polygon");
+        if (!insertError) {
+          polygon.myData.developmentOverlays = savedRows || [];
+        }
+        return { error: insertError };
+      }
+
       function finishDrawing() {
+        if (drawingMode === "development") {
+          finishDevelopmentOverlayDrawing();
+          return;
+        }
         var polygon = new kakao.maps.Polygon({
           map: map,
           path: drawingPoints,
@@ -1251,11 +1696,14 @@
           desc: "",
           amenities: {},
           published: false,
+          developmentHighlight: false,
+          developmentOverlays: [],
           saved: false,
         };
         attachPolygonEvents(polygon);
 
         isPolygonClicked = true;
+        ignoreMapCloseUntil = Date.now() + 500;
         openSidebar(polygon);
 
         // 폴리곤을 처음 다 그려서 완성한 시점에도 즉시 편·약·빨 스캔 실행
@@ -1307,6 +1755,7 @@
             blog: row.blog_url || "",
             published: row.published || false,
             showFacilities: row.show_facilities,
+            developmentOverlays: [],
             saved: true,
           };
           attachPolygonEvents(polygon);
@@ -1360,7 +1809,12 @@
             var polygon = savedPolygons[i];
             var name = polygon.myData.name || "이름 없는 동네";
             updateFullRescanStatus(
-              "전체 재스캔 " + (i + 1) + "/" + savedPolygons.length + ": " + name,
+              "전체 재스캔 " +
+                (i + 1) +
+                "/" +
+                savedPolygons.length +
+                ": " +
+                name,
             );
             var facilities = await scanFacilitiesInPolygon(polygon, {
               render: false,
@@ -1379,9 +1833,16 @@
           }
 
           if (failures.length === 0) {
-            localStorage.setItem(LAST_FULL_RESCAN_KEY, new Date().toISOString());
+            localStorage.setItem(
+              LAST_FULL_RESCAN_KEY,
+              new Date().toISOString(),
+            );
             updateFullRescanStatus();
-            alert("전체 " + savedPolygons.length + "개 동네 재스캔이 완료되었습니다.");
+            alert(
+              "전체 " +
+                savedPolygons.length +
+                "개 동네 재스캔이 완료되었습니다.",
+            );
           } else {
             updateFullRescanStatus("일부 저장 실패: " + failures.join(", "));
             alert("일부 동네 저장에 실패했습니다: " + failures.join(", "));
@@ -1410,10 +1871,9 @@
         document.getElementById("t_development").value =
           poly.myData.development || "";
         document.getElementById("t_development_highlight").checked =
-          poly.myData.developmentHighlight !== false;
+          poly.myData.developmentHighlight === true;
         document.getElementById("t_transit").value = poly.myData.transit || "";
         document.getElementById("t_price").value = poly.myData.price || "";
-        document.getElementById("t_desc").value = poly.myData.desc;
         document.getElementById("t_youtube").value = poly.myData.youtube || "";
         document.getElementById("t_blog").value = poly.myData.blog || "";
         document.getElementById("t_published").checked =
@@ -1424,28 +1884,35 @@
         renderAmenityGrades();
         var btnGroup = document.getElementById("button-group");
         var editBoundaryBtn = document.getElementById("btn-edit-boundary");
+        var rescanFacilitiesBtn = document.getElementById(
+          "btn-rescan-facilities",
+        );
         if (!poly.myData.saved) {
           // [수정] 저장하기 옆에 취소 버튼 추가
           btnGroup.innerHTML = `
             <button class="btn-full save-color" onclick="saveData()">저장</button>
             <button class="btn-full delete-color" onclick="cancelDrawing()">취소</button>
-        `;
+          `;
           editBoundaryBtn.style.display = "none";
+          rescanFacilitiesBtn.style.display = "none";
         } else {
           btnGroup.innerHTML = `
             <button class="btn-full edit-color" onclick="saveData()">수정</button>
-            <button class="btn-full rescan-color" onclick="rescanFacilities()">재스캔</button>
             <button class="btn-full delete-color" onclick="deletePolygon()">삭제</button>
         `;
           editBoundaryBtn.style.display = "block";
+          rescanFacilitiesBtn.style.display = "inline-flex";
         }
         document.getElementById("sidebar").classList.add("open");
         showLabelMarker(poly);
+        loadDevelopmentOverlays(poly);
+        updateDevelopmentOverlayControls();
       }
 
       function closeSidebar() {
         endBoundaryEdit();
         clearSubMarkers();
+        clearDevelopmentOverlays();
         hideLabelMarker();
         document.getElementById("sidebar").classList.remove("open");
         activePolygon = null;
@@ -1558,8 +2025,23 @@
 
       async function finishBoundaryEdit() {
         var boundaryChanged = boundaryChangedDuringEdit;
+        var editedDevelopmentOverlay = isEditingDevelopmentOverlay;
+        if (
+          editedDevelopmentOverlay &&
+          selectedDevelopmentOverlay &&
+          activePolygon
+        ) {
+          var overlayIndex = developmentOverlayPolygons.indexOf(
+            selectedDevelopmentOverlay,
+          );
+          if (overlayIndex >= 0) {
+            activePolygon.myData.developmentOverlays[overlayIndex].polygon =
+              serializePolygonPath(selectedDevelopmentOverlay);
+          }
+        }
         endBoundaryEdit();
         if (!boundaryChanged) return;
+        if (editedDevelopmentOverlay) return;
         var completed = await rescanFacilities({ silent: true });
         if (completed) {
           alert(
@@ -1569,12 +2051,13 @@
       }
 
       function startBoundaryEdit() {
-        if (!activePolygon) return;
+        var target = boundaryEditTarget || activePolygon;
+        if (!target) return;
         clearVertexMarkers();
         isEditingBoundary = true;
         boundaryChangedDuringEdit = false;
 
-        var path = activePolygon.getPath();
+        var path = target.getPath();
 
         var vertexIcon = new kakao.maps.MarkerImage(
           "data:image/svg+xml;charset=utf-8," +
@@ -1607,9 +2090,9 @@
             // 판단해 다시 그리지 않는 경우가 있어, 새 배열로 복사해서 넘긴다.
             var newPos = vertexMarker.getPosition();
             boundaryChangedDuringEdit = true;
-            var p = activePolygon.getPath().slice();
+            var p = target.getPath().slice();
             p[index] = newPos;
-            activePolygon.setPath(p);
+            target.setPath(p);
 
             // 양옆 + 핸들도 드래그하는 동안 같이 따라오도록 위치 재계산
             var len = path.length;
@@ -1662,38 +2145,52 @@
           midpointMarkers.push(midMarker);
         });
 
-        document.getElementById("btn-edit-boundary").textContent =
-          "경계 수정 완료";
+        if (isEditingDevelopmentOverlay) {
+          document.getElementById("btn-edit-development-overlay").textContent =
+            "수정 완료";
+        } else {
+          document.getElementById("btn-edit-boundary").textContent =
+            "경계 수정 완료";
+        }
       }
 
       // 꼭짓점 마커 클릭 시 그 꼭짓점 삭제 (최소 3개는 유지)
       function removeVertex(index) {
-        var path = activePolygon.getPath();
+        var target = boundaryEditTarget || activePolygon;
+        var path = target.getPath();
         if (path.length <= 3) {
           alert("최소 3개의 꼭짓점은 있어야 합니다.");
           return;
         }
         var newPath = path.slice();
         newPath.splice(index, 1);
-        activePolygon.setPath(newPath);
+        target.setPath(newPath);
         startBoundaryEdit();
         boundaryChangedDuringEdit = true;
       }
 
       // 변 중간의 + 핸들 클릭 시 그 자리에 새 꼭짓점 삽입
       function insertVertexAfter(index, latlng) {
-        var newPath = activePolygon.getPath().slice();
+        var target = boundaryEditTarget || activePolygon;
+        var newPath = target.getPath().slice();
         newPath.splice(index + 1, 0, latlng);
-        activePolygon.setPath(newPath);
+        target.setPath(newPath);
         startBoundaryEdit();
         boundaryChangedDuringEdit = true;
       }
 
       function endBoundaryEdit() {
+        var wasEditingDevelopmentOverlay = isEditingDevelopmentOverlay;
         isEditingBoundary = false;
+        boundaryEditTarget = null;
+        isEditingDevelopmentOverlay = false;
         clearVertexMarkers();
         var editBoundaryBtn = document.getElementById("btn-edit-boundary");
         if (editBoundaryBtn) editBoundaryBtn.textContent = "경계 수정";
+        if (wasEditingDevelopmentOverlay) {
+          document.getElementById("btn-edit-development-overlay").textContent =
+            "수정";
+        }
       }
 
       function clearVertexMarkers() {
@@ -1740,12 +2237,16 @@
         }
         var station = document.getElementById("t_station").value.trim();
         var detail = document.getElementById("t_name_detail").value.trim();
-        var name = station ? (detail ? station + " " + detail : station) : detail;
+        var name = station
+          ? detail
+            ? station + " " + detail
+            : station
+          : detail;
         if (!name) {
           alert("동네 이름을 입력해주세요!");
           return;
         }
-        var desc = document.getElementById("t_desc").value;
+        var desc = "";
         var published = document.getElementById("t_published").checked;
         var path = activePolygon.getPath().map(function (p) {
           return { lat: p.getLat(), lng: p.getLng() };
@@ -1753,7 +2254,7 @@
         // 신규 저장이거나 재스캔 직후라면 방금 스캔한 결과 사용, 아니면 기존 스냅샷 유지
         var facilities =
           !activePolygon.myData.saved || activePolygon.myData.pendingRescan
-            ? lastScanFacilities
+            ? activePolygon.myData.lastScanFacilities || []
             : activePolygon.myData.facilities || [];
 
         var amenities = {};
@@ -1770,9 +2271,8 @@
         var price = document.getElementById("t_price").value;
         var youtube = document.getElementById("t_youtube").value;
         var blog = document.getElementById("t_blog").value;
-        var showFacilities = document.getElementById(
-          "t_show_facilities",
-        ).checked;
+        var showFacilities =
+          document.getElementById("t_show_facilities").checked;
 
         var row = {
           name: name,
@@ -1812,6 +2312,12 @@
         if (!activePolygon.myData.id && result.data) {
           activePolygon.myData.id = result.data.id;
         }
+        var overlayResult = await saveDevelopmentOverlays(activePolygon);
+        if (overlayResult.error) {
+          alert("보조 경계 저장 실패: " + overlayResult.error.message);
+          return;
+        }
+        activePolygon.myData.developmentOverlaysLoaded = true;
         activePolygon.myData.name = name;
         activePolygon.myData.station = station;
         activePolygon.myData.tagline = tagline;

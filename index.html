@@ -328,9 +328,6 @@
       #info-tagline:empty {
         display: none;
       }
-      #info-desc {
-        margin-bottom: 16px;
-      }
       #info-desc .desc-heading {
         font-size: 13px;
         font-weight: 800;
@@ -1415,6 +1412,15 @@
         Object.keys(brandData).forEach(function (brand) {
           if (allActive === brandData[brand].active) toggleBrand(brand);
         });
+        // 전체 인프라를 다시 끈 뒤에도 동네 상세가 열려 있다면,
+        // 해당 동네를 위한 반경 인프라 표시는 원래 상태로 되돌린다.
+        if (
+          allActive &&
+          selectedNeighborhood &&
+          selectedNeighborhood.row.show_facilities !== false
+        ) {
+          renderNearbyBrandMarkers(selectedNeighborhood.bounds);
+        }
       }
 
       function toggleThemePanel() {
@@ -1436,12 +1442,89 @@
       var NEIGHBORHOOD_ZOOM_THRESHOLD = 5; // 이 레벨보다 확대되면(숫자가 작아지면) 폴리곤, 아니면 마커
       var neighborhoods = [];
       var subMarkers = [];
+      var developmentOverlaysByNeighborhood = {};
+      var visibleDevelopmentOverlays = [];
+      var visibleDevelopmentOverlayLabels = [];
 
       function clearSubMarkers() {
         subMarkers.forEach(function (marker) {
           marker.setMap(null);
         });
         subMarkers = [];
+      }
+
+      function clearDevelopmentOverlays() {
+        visibleDevelopmentOverlays.forEach(function (overlay) {
+          overlay.setMap(null);
+        });
+        visibleDevelopmentOverlays = [];
+        visibleDevelopmentOverlayLabels.forEach(function (label) {
+          label.setMap(null);
+        });
+        visibleDevelopmentOverlayLabels = [];
+      }
+
+      function renderDevelopmentOverlays(neighborhoodId) {
+        clearDevelopmentOverlays();
+        (developmentOverlaysByNeighborhood[neighborhoodId] || []).forEach(
+          function (item) {
+            var path = (item.polygon || []).map(function (point) {
+              return new kakao.maps.LatLng(point.lat, point.lng);
+            });
+            if (path.length < 3) return;
+            var bounds = new kakao.maps.LatLngBounds();
+            path.forEach(function (point) {
+              bounds.extend(point);
+            });
+            var overlay = new kakao.maps.Polygon({
+              map: map,
+              path: path,
+              strokeWeight: 2,
+              strokeColor: "#c76a15",
+              strokeOpacity: 0.9,
+              strokeStyle: "dash",
+              fillColor: "#c76a15",
+              fillOpacity: 0.14,
+              zIndex: 12,
+              clickable: false,
+            });
+            visibleDevelopmentOverlays.push(overlay);
+
+            var labelElement = document.createElement("div");
+            labelElement.textContent = item.name || "재개발 구역";
+            labelElement.style.cssText =
+              "pointer-events:none; padding:3px 7px; border:1px solid #d9aa80; border-radius:5px; background:rgba(255,255,255,.9); color:#ad6729; font-size:11px; font-weight:700; white-space:nowrap; box-shadow:0 1px 3px rgba(128,76,24,.1);";
+            var label = new kakao.maps.CustomOverlay({
+              position: boundsCenter(bounds),
+              content: labelElement,
+              map: map,
+              yAnchor: 0.5,
+              zIndex: 13,
+            });
+            visibleDevelopmentOverlayLabels.push(label);
+          },
+        );
+      }
+
+      async function loadDevelopmentOverlays() {
+        var { data, error } = await sb
+          .from("development_overlays")
+          .select("neighborhood_id, name, polygon");
+        if (error) {
+          console.error("재개발 보조 경계 로딩 실패:", error);
+          return;
+        }
+        developmentOverlaysByNeighborhood = (data || []).reduce(function (
+          groups,
+          item,
+        ) {
+          if (!groups[item.neighborhood_id]) groups[item.neighborhood_id] = [];
+          groups[item.neighborhood_id].push(item);
+          return groups;
+        }, {});
+        if (selectedNeighborhood) {
+          renderDevelopmentOverlays(selectedNeighborhood.id);
+        }
       }
 
       // 저장 시점에 DB에 스냅샷된 편의점/약국/빨래방을 이모지로 표출 (API 재호출 없음)
@@ -1613,21 +1696,30 @@
         }
       });
 
+      function formatSpecText(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;")
+          .replace(/'/g, "&#039;")
+          .replace(/\r?\n/g, "<br>");
+      }
+
       function openInfoPanel(row, bounds) {
         currentRow = row;
         document.getElementById("info-name").textContent = row.name;
         document.getElementById("info-tagline").textContent = row.tagline
           ? "“" + row.tagline + "”"
           : "";
-        document.getElementById("info-desc").innerHTML = renderDescription(
-          row.description,
-        );
+        document.getElementById("info-desc").innerHTML = "";
 
         var specs = "";
+        var developmentSpec = "";
         if (row.development)
-          specs +=
+          developmentSpec +=
             '<div class="spec-row-info"><span class="spec-label">개발</span><span class="spec-text">' +
-            row.development +
+            formatSpecText(row.development) +
             '</span><button class="spec-info-btn" onclick="toggleSpecInfo(event)">?</button>' +
             '<div class="spec-info-tooltip">정비구역지정 → 조합설립인가 → 사업시행인가 → ' +
             '<span class="dev-stage-danger">관리처분인가</span> → ' +
@@ -1646,6 +1738,7 @@
             '<div><span class="spec-label">시세</span><span class="spec-text">' +
             row.price +
             "</span></div>";
+        specs += developmentSpec;
         document.getElementById("info-specs").innerHTML = specs;
 
         var amenitiesHtml = buildAmenityChips(row.amenities);
@@ -1683,8 +1776,14 @@
         document.getElementById("info-links").innerHTML = links;
 
         document.getElementById("info-panel").classList.add("open");
-        renderCachedFacilities(row.facilities || []);
-        if (bounds) renderNearbyBrandMarkers(bounds);
+        // 편·빨·약 표시를 끈 동네는 상세 요약뿐 아니라 지도 이모지도 보여주지 않는다.
+        // 빈 배열을 전달해 이전에 열었던 동네의 이모지도 함께 정리한다.
+        renderCachedFacilities(
+          row.show_facilities === false ? [] : row.facilities || [],
+        );
+        renderDevelopmentOverlays(row.id);
+        // 재개발구역처럼 생활 인프라 표시를 끈 동네는 주변 자취 인프라도 자동 표출하지 않는다.
+        if (bounds && row.show_facilities !== false) renderNearbyBrandMarkers(bounds);
       }
 
       // 폴리곤 바운딩박스를 상하좌우로 meters만큼 넓힘 (경계 기준 버퍼)
@@ -1762,7 +1861,7 @@
         return !!(
           row &&
           row.development &&
-          row.development_highlight !== false
+          row.development_highlight === true
         );
       }
 
@@ -1777,6 +1876,7 @@
 
       function closeInfoPanel() {
         clearSubMarkers();
+        clearDevelopmentOverlays();
         document.getElementById("info-panel").classList.remove("open");
         if (selectedNeighborhood) {
           selectedNeighborhood.polygon.setMap(null);
@@ -1922,7 +2022,10 @@
       }
 
       async function loadNeighborhoods() {
-        var { data, error } = await sb.from("neighborhoods").select("*");
+        var { data, error } = await sb
+          .from("neighborhoods")
+          .select("*")
+          .eq("published", true);
         if (error) {
           console.error("동네 목록 로딩 실패:", error);
           return;
@@ -2022,6 +2125,7 @@
         }
       }
       loadNeighborhoods();
+      loadDevelopmentOverlays();
 
       kakao.maps.event.addListener(map, "click", function () {
         closeMapGuide();
