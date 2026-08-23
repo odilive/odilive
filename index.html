@@ -663,6 +663,56 @@
         font-size: 11px;
         font-weight: 700;
       }
+      .feedback-form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .feedback-form input,
+      .feedback-form textarea {
+        width: 100%;
+        padding: 11px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-sizing: border-box;
+        background: #fff;
+        color: var(--ink);
+        font: inherit;
+        font-size: 13px;
+      }
+      .feedback-form textarea {
+        min-height: 128px;
+        resize: vertical;
+        line-height: 1.6;
+      }
+      .feedback-form .feedback-submit {
+        margin-top: 2px;
+        padding: 12px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--brand-teal);
+        color: #fff;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .feedback-form .feedback-submit:disabled {
+        cursor: default;
+        opacity: 0.55;
+      }
+      .feedback-form-note {
+        margin: 2px 0 0;
+        color: #879596;
+        font-size: 11px;
+        line-height: 1.55;
+      }
+      .feedback-result {
+        margin: 4px 0 0;
+        color: var(--brand-teal-dark);
+        font-size: 13px;
+        font-weight: 700;
+      }
       .story-panel-title {
         margin-right: 0;
         font-size: 18px;
@@ -1177,11 +1227,7 @@
         aria-label="어디살까 홈으로 돌아가기"
         onclick="goHome()"
       >
-        <img
-          src="logo.png"
-          alt=""
-          style="height: 42px; width: auto"
-        />
+        <img src="logo.png" alt="" style="height: 42px; width: auto" />
         <p class="header-wordmark">어디살까</p>
       </button>
       <div class="header-actions">
@@ -1445,7 +1491,7 @@
         panel.innerHTML =
           '<nav class="panel-menu-list" aria-label="메뉴">' +
           '<button class="panel-menu-item" type="button" onclick="openStoryPanel()"><span>어디살까 이야기</span><span class="menu-chevron" aria-hidden="true">›</span></button>' +
-          '<span class="panel-menu-item is-soon" aria-disabled="true"><span>의견 보내기</span><small>준비 중</small></span>' +
+          '<button class="panel-menu-item" type="button" onclick="openFeedbackPanel()"><span>의견 보내기</span><span class="menu-chevron" aria-hidden="true">›</span></button>' +
           "</nav>";
         openSitePanel();
       }
@@ -1462,6 +1508,48 @@
         panel.appendChild(document.getElementById("story-channel-links"));
         setSitePanelBack(true);
         openSitePanel();
+      }
+
+      function openFeedbackPanel() {
+        var panel = document.getElementById("site-panel-scroll");
+        setStoryChannelLinks(false);
+        panel.innerHTML =
+          '<p class="panel-eyebrow">FEEDBACK</p>' +
+          '<h2 class="panel-title list-panel-title">의견을 들려주세요</h2>' +
+          '<form class="feedback-form" onsubmit="submitFeedback(event)">' +
+          '<input id="feedback-area" type="text" maxlength="80" placeholder="관련 동네·지역 (선택)" />' +
+          '<textarea id="feedback-message" maxlength="2000" required placeholder="알려주실 내용이나 의견을 적어주세요."></textarea>' +
+          '<input id="feedback-email" type="email" maxlength="160" autocomplete="email" placeholder="답변 받을 이메일 주소 (선택)" />' +
+          '<button class="feedback-submit" type="submit">의견 보내기</button>' +
+          '<p class="feedback-form-note">보내주신 내용은 검토 후 지도와 서비스 개선에 반영합니다.</p>' +
+          '<p class="feedback-result" id="feedback-result" aria-live="polite"></p>' +
+          "</form>";
+        setSitePanelBack(true);
+        openSitePanel();
+      }
+
+      async function submitFeedback(event) {
+        event.preventDefault();
+        var form = event.currentTarget;
+        var message = document.getElementById("feedback-message").value.trim();
+        var result = document.getElementById("feedback-result");
+        var submit = form.querySelector("button[type=submit]");
+        if (!message) return;
+        submit.disabled = true;
+        result.textContent = "보내는 중입니다…";
+        var response = await sb.from("feedback_submissions").insert({
+          area: document.getElementById("feedback-area").value.trim() || null,
+          message: message,
+          email: document.getElementById("feedback-email").value.trim() || null,
+        });
+        if (response.error) {
+          result.textContent = "전송하지 못했어요. 잠시 후 다시 시도해주세요.";
+          submit.disabled = false;
+          return;
+        }
+        form.reset();
+        result.textContent = "소중한 의견 감사합니다.";
+        submit.disabled = false;
       }
 
       // 현재 서비스에 등장하는 역의 노선 정보. 전체 역 마스터 구축 전까지 목록 표시에만 사용한다.

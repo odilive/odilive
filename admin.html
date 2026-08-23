@@ -302,7 +302,8 @@
       }
 
       #sidebar,
-      #curation-panel {
+      #curation-panel,
+      #feedback-panel {
         position: fixed;
         top: 0;
         right: -400px;
@@ -318,16 +319,101 @@
         flex-direction: column;
       }
       #sidebar.open,
-      #curation-panel.open {
+      #curation-panel.open,
+      #feedback-panel.open {
         right: 0;
       }
       #sidebar,
-      #curation-panel {
+      #curation-panel,
+      #feedback-panel {
         overflow-y: auto;
       }
       #sidebar h3,
-      #curation-panel h3 {
+      #curation-panel h3,
+      #feedback-panel h3 {
         margin: 0 0 12px;
+      }
+      .feedback-item {
+        padding: 13px 0;
+        border-bottom: 1px solid #edf0f0;
+      }
+      .feedback-item:first-child {
+        border-top: 1px solid #edf0f0;
+      }
+      .feedback-item-meta {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 7px;
+        color: #6f7f80;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .feedback-item-message {
+        margin: 0 0 9px;
+        color: #344748;
+        font-size: 13px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+      }
+      .feedback-item-area,
+      .feedback-item-contact {
+        margin: 3px 0 0;
+        color: #819091;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+      .feedback-tabs {
+        display: flex;
+        gap: 4px;
+        margin: 0 0 12px;
+        border-bottom: 1px solid #e5ebeb;
+      }
+      .feedback-tab {
+        padding: 7px 8px 8px;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        color: #819091;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .feedback-tab.is-active {
+        border-bottom-color: #085e6a;
+        color: #085e6a;
+      }
+      .feedback-item-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 6px;
+        margin-top: 11px;
+      }
+      .feedback-item-actions button {
+        padding: 5px 8px;
+        border: 1px solid #d8e2e2;
+        border-radius: 6px;
+        background: #fff;
+        color: #597173;
+        font: inherit;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .feedback-item-actions button:hover {
+        border-color: #085e6a;
+        color: #085e6a;
+      }
+      .feedback-item-actions .feedback-action-danger:hover {
+        border-color: #c85d52;
+        color: #b84b41;
+      }
+      .feedback-empty {
+        padding: 28px 0;
+        color: #8a989a;
+        font-size: 13px;
+        text-align: center;
       }
       .sidebar-title-row {
         display: flex;
@@ -628,6 +714,14 @@
       >
         📌 큐레이션 관리
       </button>
+      <button
+        id="btnFeedback"
+        class="btn btn-export"
+        style="margin-right: 8px"
+        onclick="toggleFeedbackPanel()"
+      >
+        ✉ 의견함
+      </button>
       <span id="full-rescan-status" class="rescan-status"></span>
       <button
         id="btnRescanAll"
@@ -875,6 +969,17 @@
           새로
         </button>
       </div>
+    </div>
+
+    <div id="feedback-panel">
+      <button class="close-btn" onclick="closeFeedbackPanel()">&times;</button>
+      <h3>✉ 의견함</h3>
+      <div class="feedback-tabs" role="tablist" aria-label="의견 분류">
+        <button class="feedback-tab is-active" type="button" data-feedback-view="inbox" onclick="setFeedbackView('inbox')">의견함</button>
+        <button class="feedback-tab" type="button" data-feedback-view="done" onclick="setFeedbackView('done')">처리 완료</button>
+        <button class="feedback-tab" type="button" data-feedback-view="trash" onclick="setFeedbackView('trash')">휴지통</button>
+      </div>
+      <div id="feedback-list"></div>
     </div>
 
     <script
@@ -1858,6 +1963,7 @@
       function openSidebar(poly) {
         endBoundaryEdit(); // 다른 폴리곤을 열 때 이전 경계 수정 상태 정리
         closeCurationPanel();
+        closeFeedbackPanel();
         activePolygon = poly;
         var station = poly.myData.station || "";
         var name = poly.myData.name || "";
@@ -2398,6 +2504,166 @@
         });
       });
 
+      // ══════════════ 이용자 의견함 ══════════════
+      var feedbackSubmissions = [];
+      var feedbackView = "inbox";
+
+      function closeFeedbackPanel() {
+        document.getElementById("feedback-panel").classList.remove("open");
+      }
+
+      function toggleFeedbackPanel() {
+        var panel = document.getElementById("feedback-panel");
+        if (panel.classList.contains("open")) {
+          closeFeedbackPanel();
+          return;
+        }
+        closeSidebar();
+        closeCurationPanel();
+        panel.classList.add("open");
+        loadFeedbackSubmissions();
+      }
+
+      function setFeedbackView(view) {
+        feedbackView = view;
+        document.querySelectorAll(".feedback-tab").forEach(function (tab) {
+          tab.classList.toggle("is-active", tab.dataset.feedbackView === view);
+        });
+        loadFeedbackSubmissions();
+      }
+
+      function renderFeedbackSubmissions() {
+        var list = document.getElementById("feedback-list");
+        list.replaceChildren();
+        if (!feedbackSubmissions.length) {
+          var empty = document.createElement("p");
+          empty.className = "feedback-empty";
+          empty.textContent =
+            feedbackView === "done"
+              ? "처리 완료한 의견이 없습니다."
+              : feedbackView === "trash"
+                ? "휴지통이 비어 있습니다."
+                : "아직 도착한 의견이 없습니다.";
+          list.appendChild(empty);
+          return;
+        }
+        feedbackSubmissions.forEach(function (item) {
+          var entry = document.createElement("article");
+          entry.className = "feedback-item";
+
+          var meta = document.createElement("div");
+          meta.className = "feedback-item-meta";
+          var date = document.createElement("span");
+          date.textContent = new Date(item.created_at).toLocaleString("ko-KR", {
+            dateStyle: "short",
+            timeStyle: "short",
+          });
+          meta.appendChild(date);
+
+          var message = document.createElement("p");
+          message.className = "feedback-item-message";
+          message.textContent = item.message;
+          entry.append(meta, message);
+          if (item.area) {
+            var area = document.createElement("p");
+            area.className = "feedback-item-area";
+            area.textContent = "관련 지역: " + item.area;
+            entry.appendChild(area);
+          }
+          if (item.email) {
+            var email = document.createElement("p");
+            email.className = "feedback-item-contact";
+            email.textContent = "이메일: " + item.email;
+            entry.appendChild(email);
+          }
+
+          var actions = document.createElement("div");
+          actions.className = "feedback-item-actions";
+          if (feedbackView === "inbox") {
+            actions.append(
+              createFeedbackAction("처리 완료", function () {
+                updateFeedbackState(item.id, "done");
+              }),
+              createFeedbackAction("휴지통", function () {
+                updateFeedbackState(item.id, "trash");
+              }, true),
+            );
+          } else if (feedbackView === "done") {
+            actions.append(
+              createFeedbackAction("다시 처리", function () {
+                updateFeedbackState(item.id, "inbox");
+              }),
+              createFeedbackAction("휴지통", function () {
+                updateFeedbackState(item.id, "trash");
+              }, true),
+            );
+          } else {
+            actions.append(
+              createFeedbackAction("복원", function () {
+                updateFeedbackState(item.id, "inbox");
+              }),
+              createFeedbackAction("영구 삭제", function () {
+                deleteFeedbackSubmission(item.id);
+              }, true),
+            );
+          }
+          entry.appendChild(actions);
+
+          list.appendChild(entry);
+        });
+      }
+
+      async function loadFeedbackSubmissions() {
+        var list = document.getElementById("feedback-list");
+        list.textContent = "의견을 불러오는 중입니다…";
+        var { data, error } = await sb
+          .from("feedback_submissions")
+          .select("*")
+          .eq("inbox_state", feedbackView)
+          .order("created_at", { ascending: false });
+        if (error) {
+          list.textContent = "의견함을 불러오지 못했습니다: " + error.message;
+          return;
+        }
+        feedbackSubmissions = data || [];
+        renderFeedbackSubmissions();
+      }
+
+      function createFeedbackAction(label, onClick, isDanger) {
+        var button = document.createElement("button");
+        button.type = "button";
+        button.textContent = label;
+        if (isDanger) button.className = "feedback-action-danger";
+        button.addEventListener("click", onClick);
+        return button;
+      }
+
+      async function updateFeedbackState(id, state) {
+        var { error } = await sb
+          .from("feedback_submissions")
+          .update({ inbox_state: state })
+          .eq("id", id);
+        if (error) {
+          alert("의견을 옮기지 못했습니다: " + error.message);
+          return;
+        }
+        loadFeedbackSubmissions();
+      }
+
+      async function deleteFeedbackSubmission(id) {
+        if (!confirm("휴지통에서 영구 삭제할까요? 이 작업은 되돌릴 수 없습니다."))
+          return;
+        var { error } = await sb
+          .from("feedback_submissions")
+          .delete()
+          .eq("id", id);
+        if (error) {
+          alert("의견을 삭제하지 못했습니다: " + error.message);
+          return;
+        }
+        loadFeedbackSubmissions();
+      }
+
       // ══════════════ 큐레이션 장소 관리 ══════════════
       var LAYER_CATEGORIES = {
         혼밥: ["밥", "커피", "간식"],
@@ -2465,6 +2731,7 @@
           closeCurationPanel();
         } else {
           closeSidebar();
+          closeFeedbackPanel();
           panel.classList.add("open");
           cpLoadPlaces();
         }
