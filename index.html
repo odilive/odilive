@@ -92,6 +92,15 @@
         align-items: center;
         gap: 8px;
       }
+      .header-home {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+      }
+      .header-home:hover .header-wordmark {
+        color: var(--brand-teal-dark);
+      }
       .header-wordmark {
         margin: 0;
         font-size: 26px;
@@ -1162,14 +1171,19 @@
   </head>
   <body>
     <div class="header">
-      <div class="header-brand">
+      <button
+        class="header-brand header-home"
+        type="button"
+        aria-label="어디살까 홈으로 돌아가기"
+        onclick="goHome()"
+      >
         <img
           src="logo.png"
-          alt="어디살까 로고"
+          alt=""
           style="height: 42px; width: auto"
         />
         <p class="header-wordmark">어디살까</p>
-      </div>
+      </button>
       <div class="header-actions">
         <button
           class="site-menu-btn"
@@ -1372,9 +1386,11 @@
       var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
       var mapContainer = document.getElementById("map");
+      var INITIAL_MAP_CENTER = new kakao.maps.LatLng(37.53, 126.9785);
+      var INITIAL_MAP_LEVEL = 8;
       var mapOption = {
-        center: new kakao.maps.LatLng(37.53, 126.9785), // 용산공원 일대
-        level: 8,
+        center: INITIAL_MAP_CENTER, // 용산공원 일대
+        level: INITIAL_MAP_LEVEL,
       };
       var map = new kakao.maps.Map(mapContainer, mapOption);
       var ps = new kakao.maps.services.Places();
@@ -1533,6 +1549,37 @@
 
       function closeMapGuide() {
         document.getElementById("map-guide").style.display = "none";
+      }
+
+      function goHome() {
+        closeInfoPanel();
+        closeSitePanel();
+        closeThemeCard();
+        clearThemePins();
+        document.getElementById("theme-panel").classList.remove("open");
+        document.getElementById("theme-btn-label").textContent = "🧭 테마 지도";
+        document
+          .getElementById("theme-toggle-btn")
+          .classList.remove("is-active");
+
+        Object.keys(brandData).forEach(function (brand) {
+          var state = brandData[brand];
+          state.active = false;
+          Object.values(state.markers).forEach(function (marker) {
+            marker.setMap(null);
+          });
+          clearNearbyBrandMarkers(brand);
+        });
+        updateBrandToggleBtnState();
+
+        isPolygonClicked = false;
+        map.setCenter(INITIAL_MAP_CENTER);
+        map.setLevel(INITIAL_MAP_LEVEL);
+        updateNeighborhoodVisibility();
+        history.replaceState(null, "", location.pathname);
+        window.setTimeout(function () {
+          document.getElementById("map-guide").style.display = "";
+        }, 350);
       }
 
       // 모바일에서는 상단부를 끌거나, 본문이 맨 위일 때 아래로 당겨 패널을 닫을 수 있다.
@@ -2046,7 +2093,7 @@
         }
       }
       document.addEventListener("click", function (e) {
-        if (!e.target.closest(".spec-row-info")) {
+        if (!e.target.closest(".spec-info-btn, .spec-info-tooltip")) {
           document
             .querySelectorAll(".spec-info-tooltip.open")
             .forEach(function (t) {
@@ -2076,21 +2123,20 @@
           ? "“" + row.tagline + "”"
           : "";
         var peekNext = document.getElementById("info-peek-next");
-        var peekNextLabel = row.transit
-          ? "교통"
-          : row.price
-            ? "시세"
-            : row.development
-              ? "개발"
-              : "";
-        var peekNextValue = row.transit || row.price || row.development || "";
+        var visibleSpecs = [
+          { label: "교통", value: row.transit },
+          { label: "시세", value: row.price },
+          { label: "개발", value: row.development },
+        ].filter(function (spec) {
+          return !!spec.value;
+        });
         peekNext.replaceChildren();
-        if (peekNextValue) {
+        if (visibleSpecs.length) {
           var peekLabel = document.createElement("span");
           peekLabel.className = "info-peek-next-label";
-          peekLabel.textContent = peekNextLabel;
+          peekLabel.textContent = visibleSpecs[0].label;
           var peekText = document.createElement("span");
-          peekText.textContent = peekNextValue;
+          peekText.textContent = visibleSpecs[0].value;
           peekNext.append(peekLabel, peekText);
         }
         document.getElementById("info-desc").innerHTML = "";
@@ -2157,10 +2203,21 @@
         document.getElementById("info-links").innerHTML = links;
 
         var infoPanel = document.getElementById("info-panel");
+        var isShortInfo =
+          isPhoneInfoPanel() &&
+          visibleSpecs.length <= 2 &&
+          !amenitiesHtml &&
+          !facilitySummaryHtml &&
+          !links;
         infoPanel.classList.remove("is-closing-peek");
         infoPanel.classList.add("open");
-        infoPanel.classList.toggle("is-peek", isPhoneInfoPanel());
-        if (infoPanel.classList.contains("is-peek")) hintInfoPanelExpansion();
+        infoPanel.classList.toggle("is-short-info", isShortInfo);
+        infoPanel.classList.toggle(
+          "is-peek",
+          isPhoneInfoPanel() && !isShortInfo,
+        );
+        if (infoPanel.classList.contains("is-peek") && !isShortInfo)
+          hintInfoPanelExpansion();
         // 편·빨·약 표시를 끈 동네는 상세 요약뿐 아니라 지도 이모지도 보여주지 않는다.
         // 빈 배열을 전달해 이전에 열었던 동네의 이모지도 함께 정리한다.
         renderCachedFacilities(
@@ -2271,11 +2328,15 @@
               panel.classList.contains("is-closing-peek") &&
               !panel.classList.contains("open")
             ) {
-              panel.classList.remove("is-peek", "is-closing-peek");
+              panel.classList.remove(
+                "is-peek",
+                "is-short-info",
+                "is-closing-peek",
+              );
             }
           }, 320);
         } else {
-          panel.classList.remove("is-peek", "is-closing-peek");
+          panel.classList.remove("is-peek", "is-short-info", "is-closing-peek");
         }
         if (selectedNeighborhood) {
           selectedNeighborhood.polygon.setMap(null);
@@ -2298,7 +2359,7 @@
       window.addEventListener("resize", function () {
         var panel = document.getElementById("info-panel");
         if (!isPhoneInfoPanel() && panel.classList.contains("open")) {
-          panel.classList.remove("is-peek", "expand-hint");
+          panel.classList.remove("is-peek", "is-short-info", "expand-hint");
         }
       });
 
@@ -2314,7 +2375,10 @@
 
       function handleInfoSheetPullDown() {
         var panel = document.getElementById("info-panel");
-        if (panel.classList.contains("is-peek")) {
+        if (
+          panel.classList.contains("is-peek") ||
+          panel.classList.contains("is-short-info")
+        ) {
           closeInfoPanel();
           return "closed";
         }
@@ -2323,9 +2387,8 @@
       }
 
       function expandInfoPanel() {
-        document
-          .getElementById("info-panel")
-          .classList.remove("is-peek", "expand-hint");
+        var panel = document.getElementById("info-panel");
+        panel.classList.remove("is-peek", "expand-hint");
       }
 
       function hintInfoPanelExpansion() {
