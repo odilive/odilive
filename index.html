@@ -6,7 +6,7 @@
     <title>어디살까? 자취하기 좋은 동네!</title>
     <meta
       name="description"
-      content="직접 다녀보고 추천하는 자취 동네 지도. 동네를 누르면 교통·시세·분위기까지 한눈에 확인할 수 있습니다."
+      content="직접 다녀보고 추천하는 자취 동네 지도. 동네를 누르면 교통·월세·분위기까지 한눈에 확인할 수 있습니다."
     />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="어디살까? 자취하기 좋은 동네!" />
@@ -527,18 +527,43 @@
         cursor: pointer;
         color: #93a5a6;
       }
-      .copy-btn {
+      .info-actions {
         position: absolute;
-        top: 24px;
+        top: 18px;
         right: 54px;
-        background: none;
-        border: none;
-        font-size: 16px;
         display: flex;
+        gap: 2px;
+      }
+      .info-action-btn {
+        position: relative;
+        display: flex;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
         align-items: center;
         justify-content: center;
         color: #93a5a6;
         cursor: pointer;
+      }
+      .info-action-btn:hover {
+        background: #f1f6f6;
+        color: var(--brand-teal-dark);
+      }
+      .info-action-btn.is-copied::after {
+        content: "링크 복사됨";
+        position: absolute;
+        right: calc(100% + 4px);
+        padding: 4px 7px;
+        border-radius: 5px;
+        background: #085e6a;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1;
+        white-space: nowrap;
       }
       #info-peek {
         display: none;
@@ -1046,7 +1071,7 @@
         #info-panel.is-peek.expand-hint #info-peek-next {
           animation: info-peek-next-hint 560ms ease-out;
         }
-        #info-panel.is-peek .copy-btn,
+        #info-panel.is-peek .info-actions,
         #info-panel.is-peek #info-scroll,
         #info-panel.is-peek #info-links {
           display: none;
@@ -1327,30 +1352,33 @@
         </span>
         <div id="info-peek-next"></div>
       </div>
-      <button
-        class="copy-btn"
-        id="btn-copy-link"
-        onclick="copyNeighborhoodLink()"
-        title="이 동네 링크 복사"
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
+      <div class="info-actions" aria-label="동네 기능">
+        <button
+          class="info-action-btn"
+          id="btn-copy-link"
+          type="button"
+          onclick="shareNeighborhood()"
+          title="이 동네 공유"
+          aria-label="이 동네 공유"
         >
-          <path
-            d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
-          ></path>
-          <path
-            d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
-          ></path>
-        </svg>
-      </button>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="18" cy="5" r="2.5"></circle>
+            <circle cx="6" cy="12" r="2.5"></circle>
+            <circle cx="18" cy="19" r="2.5"></circle>
+            <path d="m8.2 10.8 7.6-4.5M8.2 13.2l7.6 4.5"></path>
+          </svg>
+        </button>
+      </div>
       <div id="info-scroll">
         <h3 id="info-name"></h3>
         <div id="info-tagline"></div>
@@ -2125,22 +2153,67 @@
       }
 
       var currentRow = null; // 패널에 열려있는 동네 (링크 복사용)
+      var copyLinkFeedbackTimer = null;
 
-      function copyNeighborhoodLink() {
+      function shareNeighborhood() {
         if (!currentRow) return;
         var url = location.origin + location.pathname + "?n=" + currentRow.id;
         var btn = document.getElementById("btn-copy-link");
-        var originalIcon = btn.innerHTML;
         function done() {
-          btn.textContent = "✅";
-          setTimeout(function () {
-            btn.innerHTML = originalIcon;
+          btn.classList.add("is-copied");
+          btn.title = "링크를 복사했어요";
+          clearTimeout(copyLinkFeedbackTimer);
+          copyLinkFeedbackTimer = setTimeout(function () {
+            btn.classList.remove("is-copied");
+            btn.title = "이 동네 공유";
           }, 1500);
         }
+        var useNativeShare =
+          navigator.share &&
+          window.matchMedia("(pointer: coarse)").matches;
+        if (useNativeShare) {
+          navigator
+            .share({
+              title: "어디살까 | " + currentRow.name,
+              text: currentRow.name + " 동네 정보",
+              url: url,
+            })
+            .catch(function (error) {
+              if (error && error.name === "AbortError") return;
+              copyNeighborhoodLink(url, done);
+            });
+          return;
+        }
+        copyNeighborhoodLink(url, done);
+      }
+
+      function copyNeighborhoodLink(url, done) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(url).then(done, function () {
-            prompt("아래 주소를 복사하세요:", url);
+            fallbackCopyNeighborhoodLink(url, done);
           });
+        } else {
+          fallbackCopyNeighborhoodLink(url, done);
+        }
+      }
+
+      function fallbackCopyNeighborhoodLink(url, done) {
+        var textarea = document.createElement("textarea");
+        textarea.value = url;
+        textarea.setAttribute("readonly", "");
+        textarea.style.cssText =
+          "position:fixed; top:-9999px; left:-9999px; opacity:0;";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+        var copied = false;
+        try {
+          copied = document.execCommand("copy");
+        } catch (error) {}
+        textarea.remove();
+        if (copied) {
+          done();
         } else {
           prompt("아래 주소를 복사하세요:", url);
         }
@@ -2213,7 +2286,7 @@
         var peekNext = document.getElementById("info-peek-next");
         var visibleSpecs = [
           { label: "교통", value: row.transit },
-          { label: "시세", value: row.price },
+          { label: "월세", value: row.price },
           { label: "개발", value: row.development },
         ].filter(function (spec) {
           return !!spec.value;
@@ -2250,9 +2323,12 @@
             "</div></div>";
         if (row.price)
           specs +=
-            '<div><span class="spec-label">시세</span><span class="spec-text">' +
+            '<div class="spec-row-info"><span class="spec-label">월세</span><span class="spec-text">' +
             row.price +
-            "</span></div>";
+            '</span><button class="spec-info-btn" onclick="toggleSpecInfo(event)">?</button>' +
+            '<div class="spec-info-tooltip">보증금 1,000만 원 기준의 대략적인 월세입니다.' +
+            '<span class="spec-info-note">관리비와 집의 면적·상태·계약 조건에 따라 달라질 수 있어요.</span>' +
+            "</div></div>";
         specs += developmentSpec;
         document.getElementById("info-specs").innerHTML = specs;
 
@@ -2894,14 +2970,25 @@
             }
 
             if (place.link) {
-              var linkEl = document.createElement("a");
-              linkEl.href = place.link;
-              linkEl.target = "_blank";
+              var kakaoMapUrl = place.link.replace(/^http:/i, "https:");
+              var linkEl = document.createElement("button");
+              linkEl.type = "button";
               linkEl.textContent = "카카오맵에서 보기 →";
               linkEl.style.cssText =
-                "display:inline-block; font-size:12px; color:#085e6a; font-weight:bold;";
+                "display:inline-block; padding:0; border:0; background:transparent; font:inherit; font-size:12px; color:#085e6a; font-weight:bold; cursor:pointer;";
+              ["pointerdown", "mousedown", "touchstart"].forEach(function (eventName) {
+                linkEl.addEventListener(eventName, function (e2) {
+                  e2.stopPropagation();
+                });
+              });
               linkEl.addEventListener("click", function (e2) {
                 e2.stopPropagation();
+                var kakaoMapWindow = window.open(kakaoMapUrl, "_blank");
+                if (kakaoMapWindow) {
+                  kakaoMapWindow.opener = null;
+                } else {
+                  window.location.assign(kakaoMapUrl);
+                }
               });
               card.appendChild(linkEl);
             }
