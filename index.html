@@ -1962,6 +1962,7 @@
       // ── 저장된 동네 불러오기 (읽기 전용) ──
       var isPolygonClicked = false;
       var NEIGHBORHOOD_ZOOM_THRESHOLD = 5; // 이 레벨보다 확대되면(숫자가 작아지면) 폴리곤, 아니면 마커
+      var AREA_ZOOM_THRESHOLD = 7; // 서울 전체 화면에서는 권역, 한 단계 확대하면 역 라벨로 전환
       var neighborhoods = [];
       var subMarkers = [];
       var developmentOverlaysByNeighborhood = {};
@@ -2630,6 +2631,20 @@
       }
 
       var stationGroups = [];
+      var areaGroups = [];
+      // 첫 화면의 권역은 동네가 아니라 역을 묶습니다. 새 동네는 기존 역에 연결하면 자동으로 포함됩니다.
+      var areaGroupDefinitions = [
+        {
+          name: "1호선 도심 출근권",
+          line: "1",
+          stations: ["영등포역", "신길역", "대방역", "노량진역"],
+        },
+        {
+          name: "2호선 강남 출근권",
+          line: "2",
+          stations: ["신림역", "봉천역", "서울대입구역", "낙성대역", "사당역"],
+        },
+      ];
 
       function boundsCenter(b) {
         var sw = b.getSouthWest();
@@ -2643,11 +2658,15 @@
       // 현재 줌 레벨에 따라 "이름표들" ↔ "역 단위 그룹 라벨"을 전환 (폴리곤 자체는 선택했을 때만 보임)
       function updateNeighborhoodVisibility() {
         var showIndividual = map.getLevel() <= NEIGHBORHOOD_ZOOM_THRESHOLD;
+        var showArea = map.getLevel() >= AREA_ZOOM_THRESHOLD;
         neighborhoods.forEach(function (n) {
           n.nameLabel.setMap(showIndividual ? map : null);
         });
         stationGroups.forEach(function (g) {
-          g.marker.setMap(showIndividual ? null : map);
+          g.marker.setMap(!showIndividual && !showArea ? map : null);
+        });
+        areaGroups.forEach(function (g) {
+          g.marker.setMap(showArea ? map : null);
         });
         // 역단위로 축소된 상태에서는 큐레이션 핀·자취인프라 마커도 같이 숨겨서 소음을 줄임
         closeThemeCard();
@@ -2692,12 +2711,30 @@
         if (group.members.length === 1) selectNeighborhood(group.members[0]);
       }
 
+      function focusAreaGroup(group) {
+        closeMapGuide();
+        closeSiteMenu();
+        isPolygonClicked = true;
+        setTimeout(function () {
+          isPolygonClicked = false;
+        }, 100);
+        // 권역의 실제 경계에 맞추면 좁은 권역은 곧바로 동네 단계까지 확대된다.
+        // 중심으로 이동한 뒤 역 라벨 전용 확대 단계에 고정한다.
+        map.setCenter(boundsCenter(group.bounds));
+        map.setLevel(AREA_ZOOM_THRESHOLD - 1);
+        updateNeighborhoodVisibility();
+      }
+
       // 같은 역(row.station) 기준으로 동네들을 묶어서, 축소 상태에서 역당 라벨 하나만 표시
       function buildStationGroups() {
         stationGroups.forEach(function (g) {
           g.marker.setMap(null);
         });
+        areaGroups.forEach(function (g) {
+          g.marker.setMap(null);
+        });
         stationGroups = [];
+        areaGroups = [];
 
         var groupsByKey = {};
         neighborhoods.forEach(function (n) {
@@ -2739,6 +2776,48 @@
             yAnchor: 0.5,
             zIndex: 25,
           });
+        });
+
+        areaGroupDefinitions.forEach(function (definition) {
+          var memberStations = stationGroups.filter(function (stationGroup) {
+            return definition.stations.indexOf(stationGroup.station) !== -1;
+          });
+          if (!memberStations.length) return;
+
+          var area = {
+            name: definition.name,
+            stations: memberStations,
+            bounds: new kakao.maps.LatLngBounds(),
+          };
+          memberStations.forEach(function (stationGroup) {
+            area.bounds.extend(stationGroup.bounds.getSouthWest());
+            area.bounds.extend(stationGroup.bounds.getNorthEast());
+          });
+
+          var el = document.createElement("div");
+          el.style.cssText =
+            "display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.96); padding:8px 15px; border-radius:999px; font-size:13px; font-weight:700; letter-spacing:-0.02em; color:#06474f; box-shadow:0 3px 12px rgba(8,94,106,0.2); white-space:nowrap; cursor:pointer; border:1px solid rgba(8,94,106,0.45);";
+          var lineBadge = document.createElement("span");
+          lineBadge.className = "station-line-badge station-line-" + definition.line;
+          lineBadge.textContent = stationLineLabels[definition.line];
+          lineBadge.setAttribute("aria-hidden", "true");
+          var label = document.createElement("span");
+          label.textContent = area.name;
+          el.appendChild(lineBadge);
+          el.appendChild(label);
+          el.addEventListener("click", function (e) {
+            e.stopPropagation();
+            focusAreaGroup(area);
+          });
+
+          area.marker = new kakao.maps.CustomOverlay({
+            position: boundsCenter(area.bounds),
+            content: el,
+            map: null,
+            yAnchor: 0.5,
+            zIndex: 24,
+          });
+          areaGroups.push(area);
         });
       }
 
