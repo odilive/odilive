@@ -1597,6 +1597,7 @@
       }
 
       function clearDevelopmentOverlays() {
+        hideDevelopmentOverlayLabelMarker();
         developmentOverlayPolygons.forEach(function (overlay) {
           overlay.setMap(null);
         });
@@ -1605,6 +1606,7 @@
       }
 
       function setSelectedDevelopmentOverlay(overlay) {
+        hideDevelopmentOverlayLabelMarker();
         developmentOverlayPolygons.forEach(function (item) {
           item.setOptions({ strokeWeight: 2, fillOpacity: 0.14 });
         });
@@ -1615,7 +1617,64 @@
           overlayIndex >= 0 && activePolygon
             ? activePolygon.myData.developmentOverlays[overlayIndex].name || ""
             : "";
+        if (overlay) showDevelopmentOverlayLabelMarker(overlay);
         updateDevelopmentOverlayControls();
+      }
+
+      // 선택한 보조 경계 하나에만 라벨 위치용 마커를 띄운다.
+      var developmentOverlayLabelMarker = null;
+
+      function selectedDevelopmentOverlayData() {
+        if (!activePolygon || !selectedDevelopmentOverlay) return null;
+        var index = developmentOverlayPolygons.indexOf(
+          selectedDevelopmentOverlay,
+        );
+        return index >= 0
+          ? activePolygon.myData.developmentOverlays[index]
+          : null;
+      }
+
+      function hideDevelopmentOverlayLabelMarker() {
+        if (developmentOverlayLabelMarker) {
+          developmentOverlayLabelMarker.setMap(null);
+          developmentOverlayLabelMarker = null;
+        }
+      }
+
+      function showDevelopmentOverlayLabelMarker(overlay) {
+        var item = selectedDevelopmentOverlayData();
+        if (!item) return;
+        var position =
+          item.label_lat != null && item.label_lng != null
+            ? new kakao.maps.LatLng(item.label_lat, item.label_lng)
+            : polygonBoundsCenter(overlay);
+        var icon = new kakao.maps.MarkerImage(
+          "data:image/svg+xml;charset=utf-8," +
+            encodeURIComponent(
+              '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="32" viewBox="0 0 26 32"><path d="M13 1C6.4 1 1 6.1 1 12.5 1 21.2 13 31 13 31s12-9.8 12-18.5C25 6.1 19.6 1 13 1Z" fill="#c76a15" stroke="#fff" stroke-width="2"/><text x="13" y="17" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="12" font-weight="700">T</text></svg>',
+            ),
+          new kakao.maps.Size(26, 32),
+          { offset: new kakao.maps.Point(13, 30) },
+        );
+        developmentOverlayLabelMarker = new kakao.maps.Marker({
+          position: position,
+          image: icon,
+          draggable: true,
+          map: map,
+          zIndex: 300,
+          title: "보조 경계 라벨 위치",
+        });
+        kakao.maps.event.addListener(
+          developmentOverlayLabelMarker,
+          "dragend",
+          function () {
+            var target = selectedDevelopmentOverlayData();
+            if (!target) return;
+            var nextPosition = developmentOverlayLabelMarker.getPosition();
+            target.label_lat = nextPosition.getLat();
+            target.label_lng = nextPosition.getLng();
+          },
+        );
       }
 
       function createDevelopmentOverlay(path) {
@@ -1673,6 +1732,8 @@
         activePolygon.myData.developmentOverlays.push({
           name: "",
           polygon: serializePolygonPath(overlay),
+          label_lat: null,
+          label_lng: null,
         });
         setSelectedDevelopmentOverlay(overlay);
         ignoreMapCloseUntil = Date.now() + 500;
@@ -1686,6 +1747,7 @@
           selectedDevelopmentOverlay,
         );
         if (index < 0) return;
+        hideDevelopmentOverlayLabelMarker();
         selectedDevelopmentOverlay.setMap(null);
         developmentOverlayPolygons.splice(index, 1);
         activePolygon.myData.developmentOverlays.splice(index, 1);
@@ -1724,7 +1786,7 @@
         }
         var { data, error } = await sb
           .from("development_overlays")
-          .select("id, name, polygon")
+          .select("id, name, polygon, label_lat, label_lng")
           .eq("neighborhood_id", polygon.myData.id);
         if (error) {
           console.error("재개발 보조 경계 로딩 실패:", error);
@@ -1764,6 +1826,8 @@
               neighborhood_id: polygon.myData.id,
               name: item.name || null,
               polygon: item.polygon,
+              label_lat: item.label_lat != null ? item.label_lat : null,
+              label_lng: item.label_lng != null ? item.label_lng : null,
             };
           },
         );
@@ -1774,7 +1838,7 @@
         var { data: savedRows, error: insertError } = await sb
           .from("development_overlays")
           .insert(rows)
-          .select("id, name, polygon");
+          .select("id, name, polygon, label_lat, label_lng");
         if (!insertError) {
           polygon.myData.developmentOverlays = savedRows || [];
         }
