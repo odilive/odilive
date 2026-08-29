@@ -1672,6 +1672,7 @@
         closeSitePanel();
         closeThemeCard();
         clearThemePins();
+        activeTheme = "";
         document.getElementById("theme-panel").classList.remove("open");
         document.getElementById("theme-btn-label").textContent = "🧭 테마 지도";
         document
@@ -1963,6 +1964,7 @@
       var isPolygonClicked = false;
       var NEIGHBORHOOD_ZOOM_THRESHOLD = 5; // 이 레벨보다 확대되면(숫자가 작아지면) 폴리곤, 아니면 마커
       var AREA_ZOOM_THRESHOLD = 7; // 서울 전체 화면에서는 권역, 한 단계 확대하면 역 라벨로 전환
+      var PHONE_DETAIL_LABEL_ZOOM_THRESHOLD = 4;
       var neighborhoods = [];
       var subMarkers = [];
       var developmentOverlaysByNeighborhood = {};
@@ -1985,6 +1987,20 @@
           label.setMap(null);
         });
         visibleDevelopmentOverlayLabels = [];
+      }
+
+      function shouldShowDevelopmentOverlayLabels() {
+        return (
+          !isPhoneInfoPanel() ||
+          map.getLevel() <= PHONE_DETAIL_LABEL_ZOOM_THRESHOLD
+        );
+      }
+
+      function updateDevelopmentOverlayLabelVisibility() {
+        var showLabels = shouldShowDevelopmentOverlayLabels();
+        visibleDevelopmentOverlayLabels.forEach(function (label) {
+          label.setMap(showLabels ? map : null);
+        });
       }
 
       function renderDevelopmentOverlays(neighborhoodId) {
@@ -2023,7 +2039,7 @@
                   ? new kakao.maps.LatLng(item.label_lat, item.label_lng)
                   : boundsCenter(bounds),
               content: labelElement,
-              map: map,
+              map: shouldShowDevelopmentOverlayLabels() ? map : null,
               yAnchor: 0.5,
               zIndex: 13,
             });
@@ -2530,6 +2546,7 @@
         if (!isPhoneInfoPanel() && panel.classList.contains("open")) {
           panel.classList.remove("is-peek", "is-short-info", "expand-hint");
         }
+        updateDevelopmentOverlayLabelVisibility();
       });
 
       // 모바일에서는 창을 접어도 선택한 동네와 지도 위 정보는 그대로 둔다.
@@ -2664,19 +2681,23 @@
       function updateNeighborhoodVisibility() {
         var showIndividual = map.getLevel() <= NEIGHBORHOOD_ZOOM_THRESHOLD;
         var showArea = map.getLevel() >= AREA_ZOOM_THRESHOLD;
+        var isThemeMode = !!activeTheme;
         neighborhoods.forEach(function (n) {
-          n.nameLabel.setMap(showIndividual ? map : null);
+          n.nameLabel.setMap(showIndividual && !isThemeMode ? map : null);
         });
         stationGroups.forEach(function (g) {
-          g.marker.setMap(!showIndividual && !showArea ? map : null);
+          g.marker.setMap(
+            !isThemeMode && !showIndividual && !showArea ? map : null,
+          );
         });
         areaGroups.forEach(function (g) {
-          g.marker.setMap(showArea ? map : null);
+          g.marker.setMap(showArea && !isThemeMode ? map : null);
         });
+        updateDevelopmentOverlayLabelVisibility();
         // 역단위로 축소된 상태에서는 큐레이션 핀·자취인프라 마커도 같이 숨겨서 소음을 줄임
         closeThemeCard();
         themePins.forEach(function (p) {
-          p.setMap(showIndividual ? map : null);
+          p.setMap(showIndividual && isThemeMode ? map : null);
         });
         updateBrandMarkerVisibility();
         // 이 줌에서는 기능 자체가 무의미하니 버튼도 같이 숨김 (눌러도 반응 없어 보이는 것 방지)
@@ -2684,7 +2705,7 @@
           ? ""
           : "none";
         document.getElementById("brand-toggle-btn").style.display =
-          showIndividual ? "" : "none";
+          showIndividual && !isThemeMode ? "" : "none";
         document.getElementById("map-wrap").classList.add("map-controls-ready");
         if (!showIndividual) {
           closeInfoPanel(); // 축소되면 선택 해제 + 펼쳐진 폴리곤·이모지·패널 정리
@@ -2696,7 +2717,9 @@
         Object.keys(brandData).forEach(function (brand) {
           var state = brandData[brand];
           Object.values(state.markers).forEach(function (marker) {
-            marker.setMap(state.active && showIndividual ? map : null);
+            marker.setMap(
+              state.active && showIndividual && !activeTheme ? map : null,
+            );
           });
         });
       }
@@ -2958,6 +2981,7 @@
       };
       var themePins = [];
       var openThemeCollapse = null; // 지금 카드로 펼쳐진 핀을 다시 칩으로 접는 함수
+      var activeTheme = "";
 
       function closeThemeCard() {
         if (openThemeCollapse) {
@@ -2984,6 +3008,7 @@
 
       async function selectTheme(theme) {
         closeMapGuide();
+        activeTheme = theme;
         document.getElementById("theme-btn-label").textContent =
           THEME_LABELS[theme];
         document.getElementById("theme-panel").classList.remove("open");
@@ -2991,6 +3016,8 @@
           .getElementById("theme-toggle-btn")
           .classList.toggle("is-active", !!theme);
         clearThemePins();
+        if (theme) closeInfoPanel();
+        updateNeighborhoodVisibility();
         if (!theme) return;
 
         var { data, error } = await sb
@@ -3001,6 +3028,8 @@
           console.error("큐레이션 로딩 실패:", error);
           return;
         }
+        // 다른 테마를 선택했거나 테마를 끈 사이에 늦게 도착한 응답은 무시한다.
+        if (activeTheme !== theme) return;
         data.forEach(function (place) {
           var emoji = CATEGORY_EMOJI[place.category] || "📌";
           var position = new kakao.maps.LatLng(place.lat, place.lng);

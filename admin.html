@@ -72,10 +72,207 @@
         color: #7f8c8d;
         font-weight: bold;
       }
+      .admin-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        min-height: 52px;
+        margin-bottom: 15px;
+        padding: 0 5px;
+        border-bottom: 2px solid #3498db;
+        flex-shrink: 0;
+      }
+      .admin-toolbar .admin-header {
+        display: contents;
+      }
+      .admin-toolbar .admin-header > div:first-child {
+        flex: 0 0 auto;
+      }
+      .admin-toolbar .status {
+        order: 3;
+        flex: 0 0 auto;
+        margin-left: auto;
+        white-space: nowrap;
+      }
+      .admin-toolbar .controls {
+        order: 2;
+        display: flex;
+        flex: 1 1 auto;
+        width: auto;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+      .toolbar-dropdown {
+        position: relative;
+        flex: 0 0 auto;
+      }
+      .toolbar-control {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 11px;
+        border: 1px solid #d5e1e0;
+        border-radius: 8px;
+        background: #fff;
+        color: #496166;
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .toolbar-control:hover,
+      .toolbar-dropdown.is-open .toolbar-control {
+        border-color: #8aadaa;
+        background: #f2f8f7;
+        color: var(--brand-teal-dark);
+      }
+      .toolbar-popover {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        z-index: 10001;
+        display: none;
+        min-width: 214px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 10px 24px rgba(8, 94, 106, 0.18);
+      }
+      .toolbar-dropdown.is-open .toolbar-popover {
+        display: block;
+      }
+      .toolbar-popover .filter-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      .toolbar-popover .filter {
+        width: 100%;
+        padding: 8px 9px;
+        border-radius: 8px;
+        box-shadow: none;
+      }
+      .toolbar-scan-info {
+        margin: 0 0 9px;
+        color: #6f7f80;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.45;
+      }
+      .toolbar-popover .btn-rescan-all {
+        width: 100%;
+        padding: 9px 11px;
+        border-radius: 8px;
+        box-shadow: none;
+      }
+      .toolbar-split-control {
+        display: flex;
+      }
+      .toolbar-split-main {
+        border-radius: 8px 0 0 8px;
+      }
+      .toolbar-split-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        padding: 0;
+        border: 1px solid #d5e1e0;
+        border-left: 0;
+        border-radius: 0 8px 8px 0;
+        background: #fff;
+        color: #496166;
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .toolbar-split-toggle:hover,
+      .toolbar-dropdown.is-open .toolbar-split-toggle {
+        background: #f2f8f7;
+        color: var(--brand-teal-dark);
+      }
+      .toolbar-option-list {
+        min-width: 170px;
+        padding: 6px;
+      }
+      .toolbar-option {
+        display: block;
+        width: 100%;
+        padding: 8px 9px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: #496166;
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 700;
+        text-align: left;
+        cursor: pointer;
+      }
+      .toolbar-option:hover,
+      .toolbar-option.is-active {
+        background: #edf6f5;
+        color: var(--brand-teal-dark);
+      }
+      .toolbar-option.is-muted {
+        color: #849395;
+      }
+      .toolbar-option-divider {
+        height: 1px;
+        margin: 5px 3px;
+        background: #e4eceb;
+      }
+      #btnFeedback {
+        margin-left: auto;
+      }
+      .admin-toolbar .toolbar-actions,
+      .admin-toolbar .toolbar-management {
+        display: contents;
+      }
+      .admin-toolbar .toolbar-drawing-actions {
+        display: none;
+      }
+      #btnStart {
+        order: 1;
+      }
+      #infra-toolbar-menu {
+        order: 2;
+      }
+      #facility-toolbar-menu {
+        order: 3;
+      }
+      #theme-toolbar-menu {
+        order: 4;
+      }
+      #btnFeedback {
+        order: 5;
+      }
+      @media (max-width: 980px) {
+        .admin-toolbar {
+          flex-wrap: wrap;
+          gap: 8px;
+          padding-bottom: 8px;
+        }
+        .admin-toolbar .controls {
+          order: 3;
+          flex-basis: 100%;
+        }
+        .admin-toolbar .status {
+          order: 2;
+        }
+      }
 
       /* 컨트롤러 영역: 왼쪽 필터 그룹과 오른쪽 그리기 버튼을 양 끝으로 배치 */
       .controls {
-        margin-bottom: 15px;
+        margin-bottom: 12px;
         display: flex;
         justify-content: space-between; /* 양 끝 정렬 처리 */
         align-items: center;
@@ -624,6 +821,7 @@
       </div>
     </div>
 
+    <div class="admin-toolbar">
     <div class="admin-header">
       <div style="display: flex; align-items: center; gap: 15px">
         <img
@@ -631,9 +829,6 @@
           alt="어디살까 로고"
           style="height: 40px; width: auto"
         />
-        <h1
-          style="margin: 0; font-size: 28px; font-weight: 900; color: #2c3e50"
-        ></h1>
       </div>
       <div class="status">
         Editor Mode: odilive
@@ -658,7 +853,12 @@
     </div>
 
     <div class="controls">
-      <div class="filter-group">
+      <div class="toolbar-dropdown" id="infra-toolbar-menu">
+        <button class="toolbar-control" type="button" onclick="toggleToolbarMenu('infra-toolbar-menu', event)" aria-expanded="false">
+          자취 인프라 <span aria-hidden="true">⌄</span>
+        </button>
+        <div class="toolbar-popover">
+        <div class="filter-group">
         <button
           id="filter-daiso"
           class="btn filter daiso active"
@@ -688,8 +888,11 @@
         >
           <img src="ssm.png" alt="대형슈퍼" class="btn-logo" /> &nbsp;대형슈퍼
         </button>
+        </div>
+        </div>
       </div>
-
+      <div class="toolbar-actions">
+        <div class="toolbar-drawing-actions">
       <button
         id="btnUndoPoint"
         class="btn"
@@ -706,34 +909,58 @@
       >
         ✕ 그리기 취소
       </button>
-      <button
-        id="btnCuration"
-        class="btn btn-export"
-        style="margin-right: 8px"
-        onclick="toggleCurationPanel()"
-      >
-        📌 큐레이션 관리
-      </button>
+        </div>
+        <div class="toolbar-management">
+      <div class="toolbar-dropdown toolbar-split" id="theme-toolbar-menu">
+        <div class="toolbar-split-control">
+          <button
+            id="btnCuration"
+            class="toolbar-control toolbar-split-main"
+            type="button"
+            onclick="toggleCurationPanel()"
+          >
+            테마 큐레이션
+          </button>
+          <button
+            class="toolbar-split-toggle"
+            type="button"
+            onclick="toggleToolbarMenu('theme-toolbar-menu', event)"
+            aria-label="테마 지도 필터"
+            aria-expanded="false"
+          >
+            <span aria-hidden="true">⌄</span>
+          </button>
+        </div>
+        <div id="theme-toolbar-popover" class="toolbar-popover toolbar-option-list"></div>
+      </div>
       <button
         id="btnFeedback"
-        class="btn btn-export"
-        style="margin-right: 8px"
+        class="toolbar-control"
         onclick="toggleFeedbackPanel()"
       >
-        ✉ 의견함
+        의견함
       </button>
-      <span id="full-rescan-status" class="rescan-status"></span>
+        </div>
+        <div class="toolbar-dropdown" id="facility-toolbar-menu">
+          <button class="toolbar-control" type="button" onclick="toggleToolbarMenu('facility-toolbar-menu', event)" aria-expanded="false">
+            편빨약 <span aria-hidden="true">⌄</span>
+          </button>
+          <div class="toolbar-popover">
+      <span id="full-rescan-status" class="toolbar-scan-info"></span>
       <button
         id="btnRescanAll"
         class="btn btn-rescan-all"
-        style="margin-right: 8px"
         onclick="rescanAllFacilities()"
       >
-        🔄 전체 시설 재스캔
+        전체 시설 재스캔
       </button>
+          </div>
+        </div>
       <button id="btnStart" class="btn btn-start" onclick="toggleDrawing(true)">
-        📍 새 동네 영역 그리기
+        새 동네 영역 그리기
       </button>
+      </div>
+    </div>
     </div>
 
     <div id="map"></div>
@@ -1025,6 +1252,33 @@
         }
       }
       checkAuth();
+
+      function closeToolbarMenus() {
+        document.querySelectorAll(".toolbar-dropdown.is-open").forEach(function (menu) {
+          menu.classList.remove("is-open");
+          var trigger = menu.querySelector(
+            ".toolbar-split-toggle, .toolbar-control",
+          );
+          if (trigger) trigger.setAttribute("aria-expanded", "false");
+        });
+      }
+
+      function toggleToolbarMenu(id, event) {
+        if (event) event.stopPropagation();
+        var menu = document.getElementById(id);
+        if (!menu) return;
+        var willOpen = !menu.classList.contains("is-open");
+        closeToolbarMenus();
+        menu.classList.toggle("is-open", willOpen);
+        var trigger = menu.querySelector(
+          ".toolbar-split-toggle, .toolbar-control",
+        );
+        if (trigger) trigger.setAttribute("aria-expanded", String(willOpen));
+      }
+
+      document.addEventListener("click", function (event) {
+        if (!event.target.closest(".toolbar-dropdown")) closeToolbarMenus();
+      });
 
       var mapContainer = document.getElementById("map");
       var mapOption = {
@@ -1913,6 +2167,7 @@
             tagline: row.tagline || "",
             desc: row.description || "",
             facilities: row.facilities || [],
+            facilitiesScannedAt: row.facilities_scanned_at || null,
             amenities: row.amenities || {},
             development: row.development || "",
             developmentHighlight: row.development_highlight,
@@ -1930,6 +2185,7 @@
           attachPolygonEvents(polygon);
           savedPolygons.push(polygon);
         });
+        updateFullRescanStatus();
       }
       loadNeighborhoods();
 
@@ -1938,6 +2194,21 @@
         if (!statusEl) return;
         if (message) {
           statusEl.textContent = message;
+          return;
+        }
+        var latestScannedAt = savedPolygons.reduce(function (latest, polygon) {
+          var scannedAt = polygon.myData.facilitiesScannedAt;
+          return !latest || (scannedAt && new Date(scannedAt) > new Date(latest))
+            ? scannedAt
+            : latest;
+        }, null);
+        if (latestScannedAt) {
+          statusEl.textContent =
+            "최근 시설 스캔 " +
+            new Intl.DateTimeFormat("ko-KR", {
+              dateStyle: "short",
+              timeStyle: "short",
+            }).format(new Date(latestScannedAt));
           return;
         }
         var lastRun = localStorage.getItem(LAST_FULL_RESCAN_KEY);
@@ -1972,6 +2243,7 @@
         isFacilityScanRunning = true;
         button.disabled = true;
         var failures = [];
+        var scannedAt = new Date().toISOString();
 
         try {
           for (var i = 0; i < savedPolygons.length; i++) {
@@ -1991,13 +2263,17 @@
             });
             var { error } = await sb
               .from("neighborhoods")
-              .update({ facilities: facilities })
+              .update({
+                facilities: facilities,
+                facilities_scanned_at: scannedAt,
+              })
               .eq("id", polygon.myData.id);
             if (error) {
               console.error("시설 일괄 재스캔 저장 실패:", name, error);
               failures.push(name);
             } else {
               polygon.myData.facilities = facilities;
+              polygon.myData.facilitiesScannedAt = scannedAt;
             }
           }
 
@@ -2426,6 +2702,10 @@
           !activePolygon.myData.saved || activePolygon.myData.pendingRescan
             ? activePolygon.myData.lastScanFacilities || []
             : activePolygon.myData.facilities || [];
+        var facilitiesScannedAt =
+          !activePolygon.myData.saved || activePolygon.myData.pendingRescan
+            ? new Date().toISOString()
+            : activePolygon.myData.facilitiesScannedAt || null;
 
         var amenities = {};
         AMENITY_ITEMS.forEach(function (item) {
@@ -2451,6 +2731,7 @@
           description: desc,
           polygon: path,
           facilities: facilities,
+          facilities_scanned_at: facilitiesScannedAt,
           amenities: amenities,
           development: development,
           development_highlight: developmentHighlight,
@@ -2493,6 +2774,7 @@
         activePolygon.myData.tagline = tagline;
         activePolygon.myData.desc = desc;
         activePolygon.myData.facilities = facilities;
+        activePolygon.myData.facilitiesScannedAt = facilitiesScannedAt;
         activePolygon.myData.amenities = amenities;
         activePolygon.myData.development = development;
         activePolygon.myData.developmentHighlight = developmentHighlight;
@@ -2510,6 +2792,7 @@
         activePolygon.myData.showFacilities = showFacilities;
         activePolygon.myData.saved = true;
         activePolygon.myData.pendingRescan = false;
+        updateFullRescanStatus();
         activePolygon.setOptions({
           strokeColor: "#2ecc71",
           fillColor: "#2ecc71",
@@ -2577,6 +2860,7 @@
       }
 
       function toggleFeedbackPanel() {
+        closeToolbarMenus();
         var panel = document.getElementById("feedback-panel");
         if (panel.classList.contains("open")) {
           closeFeedbackPanel();
@@ -2753,6 +3037,9 @@
       var cpEditingId = null; // 수정 중인 장소 id
       var isPlacingPin = false; // 지도 직접 찍기 모드
 
+      var cpPreviewLayer = "";
+      var cpThemeToolbarActive = false;
+
       function cpInitSelectors() {
         var layerSel = document.getElementById("cp_layer");
         layerSel.innerHTML = Object.keys(LAYER_CATEGORIES)
@@ -2761,6 +3048,60 @@
           })
           .join("");
         cpUpdateCategoryOptions();
+        cpRenderThemeToolbarOptions();
+      }
+
+      function cpRenderPreviewOptions() {
+        var selectEl = document.getElementById("cp-preview-layer");
+        if (!selectEl) return;
+        if (
+          cpPreviewLayer &&
+          !Object.prototype.hasOwnProperty.call(
+            LAYER_CATEGORIES,
+            cpPreviewLayer,
+          )
+        ) {
+          cpPreviewLayer = "";
+        }
+        selectEl.replaceChildren();
+        [""].concat(Object.keys(LAYER_CATEGORIES)).forEach(function (layer) {
+          var option = document.createElement("option");
+          option.value = layer;
+          option.textContent = layer ? layer + " 지도" : "전체 테마";
+          option.selected = layer === cpPreviewLayer;
+          selectEl.appendChild(option);
+        });
+      }
+
+      function cpRenderThemeToolbarOptions() {
+        var list = document.getElementById("theme-toolbar-popover");
+        if (!list) return;
+        list.replaceChildren();
+
+        function addOption(label, layer, options) {
+          var button = document.createElement("button");
+          button.type = "button";
+          button.className = "toolbar-option";
+          if (options && options.muted) button.classList.add("is-muted");
+          button.classList.toggle(
+            "is-active",
+            cpThemeToolbarActive && layer === cpPreviewLayer,
+          );
+          button.textContent = label;
+          button.addEventListener("click", function () {
+            cpSetThemeToolbarLayer(layer, options && options.hide);
+          });
+          list.appendChild(button);
+        }
+
+        addOption("테마 표시 안 함", "", { muted: true, hide: true });
+        var divider = document.createElement("div");
+        divider.className = "toolbar-option-divider";
+        list.appendChild(divider);
+        addOption("전체 테마", "");
+        Object.keys(LAYER_CATEGORIES).forEach(function (layer) {
+          addOption(layer + " 지도", layer);
+        });
       }
 
       function cpUpdateCategoryOptions() {
@@ -2785,11 +3126,16 @@
       function closeCurationPanel() {
         document.getElementById("curation-panel").classList.remove("open");
         cpExitPinMode();
-        cpClearPins();
+        if (cpThemeToolbarActive) {
+          cpRenderPins();
+        } else {
+          cpClearPins();
+        }
         cpClear(); // 폼도 같이 리셋 (cpClearPreview 포함)
       }
 
       function toggleCurationPanel() {
+        closeToolbarMenus();
         var panel = document.getElementById("curation-panel");
         if (panel.classList.contains("open")) {
           closeCurationPanel();
@@ -2823,7 +3169,14 @@
 
       function cpRenderPins() {
         cpClearPins();
+        if (
+          !cpThemeToolbarActive &&
+          !document.getElementById("curation-panel").classList.contains("open")
+        ) {
+          return;
+        }
         curatedPlaces.forEach(function (place) {
+          if (cpPreviewLayer && place.layer !== cpPreviewLayer) return;
           var el = document.createElement("div");
           el.textContent =
             (CATEGORY_EMOJI[place.category] || "📌") + " " + place.name;
@@ -2849,6 +3202,18 @@
           });
           cpPins.push(overlay);
         });
+      }
+
+      async function cpSetThemeToolbarLayer(layer, hideTheme) {
+        cpPreviewLayer = hideTheme ? "" : layer;
+        cpThemeToolbarActive = !hideTheme;
+        if (hideTheme) {
+          cpClearPins();
+        } else {
+          await cpLoadPlaces();
+        }
+        cpRenderThemeToolbarOptions();
+        closeToolbarMenus();
       }
 
       function cpSearch() {
