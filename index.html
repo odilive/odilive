@@ -1820,19 +1820,19 @@
           icon: "ssm.png",
         },
       };
+      // 폴리곤(10)보다 위, 동네 이름 라벨(20)보다 아래에서 브랜드끼리의 겹침 순서를 통일한다.
+      var BRAND_MARKER_Z_INDEX = {
+        대형슈퍼: 18,
+        다이소: 17,
+        스타벅스: 16,
+        올리브영: 15,
+      };
 
       var infoWindow = new kakao.maps.InfoWindow({ zIndex: 999 });
 
       function updateBrandMarkers() {
         if (map.getLevel() > NEIGHBORHOOD_ZOOM_THRESHOLD) return; // 역단위로 축소된 상태에서는 검색도 생략
         var bounds = map.getBounds();
-
-        var brandPriority = {
-          대형슈퍼: 100,
-          다이소: 90,
-          스타벅스: 80,
-          올리브영: 70,
-        };
 
         Object.keys(brandData).forEach((brand) => {
           if (!brandData[brand].active) return;
@@ -1854,7 +1854,7 @@
                     position: new kakao.maps.LatLng(place.y, place.x),
                     image: markerImage,
                     map: map,
-                    zIndex: brandPriority[brand] || 10,
+                    zIndex: BRAND_MARKER_Z_INDEX[brand] || 10,
                   });
 
                   if (brand === "대형슈퍼") {
@@ -2436,7 +2436,8 @@
                   new kakao.maps.Size(30, 30),
                 ),
                 map: map,
-                zIndex: 40,
+                // 상세 동네를 선택해 강제로 보여주는 주변 인프라도 같은 순서를 쓴다.
+                zIndex: BRAND_MARKER_Z_INDEX[brand] || 10,
               });
               kakao.maps.event.addListener(marker, "click", function () {
                 if (place.place_url) window.open(place.place_url, "_blank");
@@ -2597,7 +2598,8 @@
         }
 
         var shiftX = labelPoint.x - desiredX;
-        var shiftY = usesBottomSheet ? labelPoint.y - desiredY : 0;
+        // PC에서도 연달아 다른 동네를 선택하면 라벨이 아래로 밀릴 수 있어 세로 중앙을 함께 보정한다.
+        var shiftY = labelPoint.y - desiredY;
         // 이미 목표 위치에 충분히 가깝다면 불필요하게 지도를 움직이지 않는다.
         if (Math.abs(shiftX) < 36 && Math.abs(shiftY) < 36) return;
 
