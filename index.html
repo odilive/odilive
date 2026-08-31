@@ -1687,6 +1687,7 @@
           });
           clearNearbyBrandMarkers(brand);
         });
+        isBrandExploreMode = false;
         updateBrandToggleBtnState();
 
         isPolygonClicked = false;
@@ -1829,6 +1830,8 @@
         올리브영: 15,
       };
 
+      // 이용자 화면의 자취 인프라는 브랜드별 필터가 아닌, 전체 인프라 탐색 모드다.
+      var isBrandExploreMode = false;
       var infoWindow = new kakao.maps.InfoWindow({ zIndex: 999 });
 
       function updateBrandMarkers() {
@@ -1840,6 +1843,12 @@
 
           // 키워드 검색과 카테고리 검색이 같은 결과 처리기를 공유 (place.id 기준으로 중복 방지)
           var handleResults = function (data, status) {
+            if (
+              !brandData[brand].active ||
+              activeTheme ||
+              map.getLevel() > NEIGHBORHOOD_ZOOM_THRESHOLD
+            )
+              return;
             if (status === kakao.maps.services.Status.OK) {
               data.forEach((place) => {
                 var finalIcon = brandData[brand].icon;
@@ -1929,21 +1938,32 @@
       function toggleAllBrands() {
         closeMapGuide();
         closeSiteMenu();
-        var allActive = Object.keys(brandData).every(function (brand) {
-          return brandData[brand].active;
-        });
-        Object.keys(brandData).forEach(function (brand) {
-          if (allActive === brandData[brand].active) toggleBrand(brand);
-        });
-        // 전체 인프라를 다시 끈 뒤에도 동네 상세가 열려 있다면,
-        // 해당 동네를 위한 반경 인프라 표시는 원래 상태로 되돌린다.
-        if (
-          allActive &&
-          selectedNeighborhood &&
-          selectedNeighborhood.row.show_facilities !== false
-        ) {
-          renderNearbyBrandMarkers(selectedNeighborhood.bounds);
+        var allActive = isBrandExploreMode;
+        if (!allActive) {
+          closeInfoPanel();
+          clearThemePins();
+          activeTheme = "";
+          document.getElementById("theme-panel").classList.remove("open");
+          document.getElementById("theme-btn-label").textContent = "🧭 테마 지도";
+          document
+            .getElementById("theme-toggle-btn")
+            .classList.remove("is-active");
         }
+        isBrandExploreMode = !allActive;
+        Object.keys(brandData).forEach(function (brand) {
+          var state = brandData[brand];
+          state.active = isBrandExploreMode;
+          if (!state.active) {
+            Object.values(state.markers).forEach(function (marker) {
+              marker.setMap(null);
+            });
+          }
+          clearNearbyBrandMarkers(brand);
+        });
+        // 모드를 끄면 일반 지도 라벨만 다시 표시한다.
+        updateBrandToggleBtnState();
+        updateBrandMarkers();
+        updateNeighborhoodVisibility();
       }
 
       function toggleThemePanel() {
@@ -2682,16 +2702,21 @@
         var showIndividual = map.getLevel() <= NEIGHBORHOOD_ZOOM_THRESHOLD;
         var showArea = map.getLevel() >= AREA_ZOOM_THRESHOLD;
         var isThemeMode = !!activeTheme;
+        var isBrandMode = isBrandExploreMode;
         neighborhoods.forEach(function (n) {
-          n.nameLabel.setMap(showIndividual && !isThemeMode ? map : null);
+          n.nameLabel.setMap(
+            showIndividual && !isThemeMode && !isBrandMode ? map : null,
+          );
         });
         stationGroups.forEach(function (g) {
           g.marker.setMap(
-            !isThemeMode && !showIndividual && !showArea ? map : null,
+            !isThemeMode && !isBrandMode && !showIndividual && !showArea
+              ? map
+              : null,
           );
         });
         areaGroups.forEach(function (g) {
-          g.marker.setMap(showArea && !isThemeMode ? map : null);
+          g.marker.setMap(showArea && !isThemeMode && !isBrandMode ? map : null);
         });
         updateDevelopmentOverlayLabelVisibility();
         // 역단위로 축소된 상태에서는 큐레이션 핀·자취인프라 마커도 같이 숨겨서 소음을 줄임
@@ -2705,7 +2730,7 @@
           ? ""
           : "none";
         document.getElementById("brand-toggle-btn").style.display =
-          showIndividual && !isThemeMode ? "" : "none";
+          showIndividual ? "" : "none";
         document.getElementById("map-wrap").classList.add("map-controls-ready");
         if (!showIndividual) {
           closeInfoPanel(); // 축소되면 선택 해제 + 펼쳐진 폴리곤·이모지·패널 정리
@@ -3008,6 +3033,18 @@
 
       async function selectTheme(theme) {
         closeMapGuide();
+        if (theme && isBrandExploreMode) {
+          isBrandExploreMode = false;
+          Object.keys(brandData).forEach(function (brand) {
+            var state = brandData[brand];
+            state.active = false;
+            Object.values(state.markers).forEach(function (marker) {
+              marker.setMap(null);
+            });
+            clearNearbyBrandMarkers(brand);
+          });
+          updateBrandToggleBtnState();
+        }
         activeTheme = theme;
         document.getElementById("theme-btn-label").textContent =
           THEME_LABELS[theme];
