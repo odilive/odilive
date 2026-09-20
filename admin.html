@@ -2677,6 +2677,9 @@
 
       async function saveData() {
         if (!activePolygon) return;
+        // 저장 중 지도 클릭 등으로 사이드바가 닫혀도, 처음 저장을 누른 폴리곤을 끝까지 유지한다.
+        // 공개 여부와 무관하게 관리자 지도에서는 항상 같은 폴리곤을 갱신해야 한다.
+        var polygon = activePolygon;
         if (isFacilityScanRunning) {
           alert("시설 정보를 스캔 중입니다. 완료된 뒤 저장해주세요.");
           return;
@@ -2694,18 +2697,18 @@
         }
         var desc = "";
         var published = document.getElementById("t_published").checked;
-        var path = activePolygon.getPath().map(function (p) {
+        var path = polygon.getPath().map(function (p) {
           return { lat: p.getLat(), lng: p.getLng() };
         });
         // 신규 저장이거나 재스캔 직후라면 방금 스캔한 결과 사용, 아니면 기존 스냅샷 유지
         var facilities =
-          !activePolygon.myData.saved || activePolygon.myData.pendingRescan
-            ? activePolygon.myData.lastScanFacilities || []
-            : activePolygon.myData.facilities || [];
+          !polygon.myData.saved || polygon.myData.pendingRescan
+            ? polygon.myData.lastScanFacilities || []
+            : polygon.myData.facilities || [];
         var facilitiesScannedAt =
-          !activePolygon.myData.saved || activePolygon.myData.pendingRescan
+          !polygon.myData.saved || polygon.myData.pendingRescan
             ? new Date().toISOString()
-            : activePolygon.myData.facilitiesScannedAt || null;
+            : polygon.myData.facilitiesScannedAt || null;
 
         var amenities = {};
         AMENITY_ITEMS.forEach(function (item) {
@@ -2746,11 +2749,11 @@
         };
 
         var result;
-        if (activePolygon.myData.id) {
+        if (polygon.myData.id) {
           result = await sb
             .from("neighborhoods")
             .update(row)
-            .eq("id", activePolygon.myData.id);
+            .eq("id", polygon.myData.id);
         } else {
           result = await sb.from("neighborhoods").insert(row).select().single();
         }
@@ -2760,40 +2763,42 @@
           return;
         }
 
-        if (!activePolygon.myData.id && result.data) {
-          activePolygon.myData.id = result.data.id;
+        if (!polygon.myData.id && result.data) {
+          polygon.myData.id = result.data.id;
         }
-        var overlayResult = await saveDevelopmentOverlays(activePolygon);
+        var overlayResult = await saveDevelopmentOverlays(polygon);
         if (overlayResult.error) {
           alert("보조 경계 저장 실패: " + overlayResult.error.message);
           return;
         }
-        activePolygon.myData.developmentOverlaysLoaded = true;
-        activePolygon.myData.name = name;
-        activePolygon.myData.station = station;
-        activePolygon.myData.tagline = tagline;
-        activePolygon.myData.desc = desc;
-        activePolygon.myData.facilities = facilities;
-        activePolygon.myData.facilitiesScannedAt = facilitiesScannedAt;
-        activePolygon.myData.amenities = amenities;
-        activePolygon.myData.development = development;
-        activePolygon.myData.developmentHighlight = developmentHighlight;
-        activePolygon.myData.labelLat = labelOverride
+        polygon.myData.developmentOverlaysLoaded = true;
+        polygon.myData.name = name;
+        polygon.myData.station = station;
+        polygon.myData.tagline = tagline;
+        polygon.myData.desc = desc;
+        polygon.myData.facilities = facilities;
+        polygon.myData.facilitiesScannedAt = facilitiesScannedAt;
+        polygon.myData.amenities = amenities;
+        polygon.myData.development = development;
+        polygon.myData.developmentHighlight = developmentHighlight;
+        polygon.myData.labelLat = labelOverride
           ? labelOverride.getLat()
           : null;
-        activePolygon.myData.labelLng = labelOverride
+        polygon.myData.labelLng = labelOverride
           ? labelOverride.getLng()
           : null;
-        activePolygon.myData.transit = transit;
-        activePolygon.myData.price = price;
-        activePolygon.myData.youtube = youtube;
-        activePolygon.myData.blog = blog;
-        activePolygon.myData.published = published;
-        activePolygon.myData.showFacilities = showFacilities;
-        activePolygon.myData.saved = true;
-        activePolygon.myData.pendingRescan = false;
+        polygon.myData.transit = transit;
+        polygon.myData.price = price;
+        polygon.myData.youtube = youtube;
+        polygon.myData.blog = blog;
+        polygon.myData.published = published;
+        polygon.myData.showFacilities = showFacilities;
+        polygon.myData.saved = true;
+        polygon.myData.pendingRescan = false;
+        if (!savedPolygons.includes(polygon)) savedPolygons.push(polygon);
         updateFullRescanStatus();
-        activePolygon.setOptions({
+        polygon.setMap(map);
+        polygon.setOptions({
           strokeColor: "#2ecc71",
           fillColor: "#2ecc71",
           fillOpacity: 0.5,
@@ -2816,6 +2821,9 @@
             }
           }
           activePolygon.setMap(null);
+          savedPolygons = savedPolygons.filter(function (polygon) {
+            return polygon !== activePolygon;
+          });
           activePolygon = null;
           alert("삭제되었습니다.");
           closeSidebar();
@@ -2866,7 +2874,7 @@
           closeFeedbackPanel();
           return;
         }
-        closeSidebar();
+        if (activePolygon === polygon) closeSidebar();
         closeCurationPanel();
         panel.classList.add("open");
         loadFeedbackSubmissions();
@@ -3017,6 +3025,7 @@
         혼밥: ["밥", "커피", "간식"],
         공부: ["도서관", "카페", "열린공간"],
         산책: ["공원", "산책로", "전망"],
+        구경: ["구경"],
       };
       var CATEGORY_EMOJI = {
         밥: "🍚",
@@ -3028,6 +3037,7 @@
         공원: "🌳",
         산책로: "🛣️",
         전망: "🌇",
+        구경: "👀",
       };
 
       var curatedPlaces = []; // DB에서 불러온 전체 목록

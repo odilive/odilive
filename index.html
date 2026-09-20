@@ -1305,6 +1305,9 @@
             <button class="ctrl-option" onclick="selectTheme('산책')">
               🚶 산책 지도
             </button>
+            <button class="ctrl-option" onclick="selectTheme('구경')">
+              👀 구경 지도
+            </button>
           </div>
         </div>
         <button
@@ -2506,7 +2509,7 @@
         "background:#c76a15; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:bold; color:#fff; box-shadow:0 0 0 2px #fff inset, 0 3px 10px rgba(199,106,21,0.5); white-space:nowrap; cursor:pointer; border:1.5px solid #c76a15;";
 
       function isDevHighlighted(row) {
-        return !!(row && row.development && row.development_highlight === true);
+        return !!(row && row.development_highlight === true);
       }
 
       function labelStyleFor(n, selected) {
@@ -3003,6 +3006,7 @@
         공원: "🌳",
         산책로: "🛣️",
         전망: "🌇",
+        구경: "👀",
       };
       var themePins = [];
       var openThemeCollapse = null; // 지금 카드로 펼쳐진 핀을 다시 칩으로 접는 함수
@@ -3029,6 +3033,7 @@
         혼밥: "🍚 혼밥 지도",
         공부: "✏️ 공부 지도",
         산책: "🚶 산책 지도",
+        구경: "👀 구경 지도",
       };
 
       async function selectTheme(theme) {
