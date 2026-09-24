@@ -1977,10 +1977,14 @@
 
       kakao.maps.event.addListener(map, "idle", updateBrandMarkers);
       kakao.maps.event.addListener(map, "zoom_changed", function () {
+        cancelSelectedNeighborhoodFocus();
         closeMapGuide();
         updateNeighborhoodVisibility();
       });
-      kakao.maps.event.addListener(map, "dragstart", closeMapGuide);
+      kakao.maps.event.addListener(map, "dragstart", function () {
+        cancelSelectedNeighborhoodFocus();
+        closeMapGuide();
+      });
       updateBrandMarkers();
 
       // ── 저장된 동네 불러오기 (읽기 전용) ──
@@ -2498,6 +2502,7 @@
       }
 
       var selectedNeighborhood = null; // 지금 폴리곤이 펼쳐져 보이는 동네 (한 번에 하나만)
+      var selectedNeighborhoodFocusTimer = null;
 
       var NAME_LABEL_STYLE =
         "background:white; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:bold; color:#06474f; box-shadow:0 2px 6px rgba(8,94,106,0.3); white-space:nowrap; cursor:pointer; border:1.5px solid #085e6a;";
@@ -2651,12 +2656,26 @@
           new kakao.maps.Point(centerPoint.x + shiftX, centerPoint.y + shiftY),
         );
         map.panTo(nextCenter);
+        window.clearTimeout(selectedNeighborhoodFocusTimer);
+        selectedNeighborhoodFocusTimer = window.setTimeout(function () {
+          selectedNeighborhoodFocusTimer = null;
+        }, 500);
+      }
+
+      // 선택 직후의 자동 이동은 유지하되, 사용자가 지도를 확대·드래그하기 시작하면
+      // 진행 중인 panTo를 멈춰 사용자의 탐색 위치를 덮어쓰지 않는다.
+      function cancelSelectedNeighborhoodFocus() {
+        if (!selectedNeighborhoodFocusTimer) return;
+        window.clearTimeout(selectedNeighborhoodFocusTimer);
+        selectedNeighborhoodFocusTimer = null;
+        map.setCenter(map.getCenter());
       }
 
       // 이름표를 클릭했을 때: 그 동네만 폴리곤을 펼치고, 이전에 펼쳐져 있던 폴리곤은 접음
       function selectNeighborhood(n) {
         closeMapGuide();
         closeSiteMenu();
+        var isReselectingCurrent = selectedNeighborhood === n;
         if (selectedNeighborhood && selectedNeighborhood !== n) {
           selectedNeighborhood.polygon.setMap(null);
           selectedNeighborhood.labelEl.style.cssText = labelStyleFor(
@@ -2672,7 +2691,9 @@
           isPolygonClicked = false;
         }, 100);
         openInfoPanel(n.row, n.bounds);
-        focusSelectedNeighborhood(n);
+        // 이미 열어 둔 동네를 다시 누르거나 폴리곤 위에서 드래그한 뒤의 클릭은
+        // 사용자가 잡아 둔 지도 위치를 바꾸지 않는다.
+        if (!isReselectingCurrent) focusSelectedNeighborhood(n);
       }
 
       var stationGroups = [];
@@ -2940,7 +2961,6 @@
               e.domEvent.stopPropagation();
             selectNeighborhood(entry);
           };
-          kakao.maps.event.addListener(polygon, "mousedown", handler);
           kakao.maps.event.addListener(polygon, "click", handler);
           kakao.maps.event.addListener(polygon, "mouseover", function () {
             mapContainer.classList.add("poly-hover");

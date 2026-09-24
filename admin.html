@@ -233,6 +233,23 @@
       #btnFeedback {
         margin-left: auto;
       }
+      .feedback-count-badge {
+        display: inline-flex;
+        min-width: 17px;
+        height: 17px;
+        padding: 0 5px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: #d9584f;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .feedback-count-badge[hidden] {
+        display: none;
+      }
       .admin-toolbar .toolbar-actions,
       .admin-toolbar .toolbar-management {
         display: contents;
@@ -938,7 +955,7 @@
         class="toolbar-control"
         onclick="toggleFeedbackPanel()"
       >
-        의견함
+        의견함 <span id="feedback-count-badge" class="feedback-count-badge" hidden></span>
       </button>
         </div>
         <div class="toolbar-dropdown" id="facility-toolbar-menu">
@@ -1235,6 +1252,7 @@
         }
         document.getElementById("login-overlay").style.display = "none";
         document.getElementById("btn-logout").style.display = "inline-block";
+        updateFeedbackBadge();
       }
 
       async function handleLogout() {
@@ -1249,6 +1267,7 @@
         if (session) {
           document.getElementById("login-overlay").style.display = "none";
           document.getElementById("btn-logout").style.display = "inline-block";
+          updateFeedbackBadge();
         }
       }
       checkAuth();
@@ -2863,6 +2882,30 @@
       var feedbackSubmissions = [];
       var feedbackView = "inbox";
 
+      async function updateFeedbackBadge() {
+        var badge = document.getElementById("feedback-count-badge");
+        var button = document.getElementById("btnFeedback");
+        if (!badge || !button) return;
+
+        var { count, error } = await sb
+          .from("feedback_submissions")
+          .select("id", { count: "exact", head: true })
+          .eq("inbox_state", "inbox");
+        if (error) {
+          badge.hidden = true;
+          button.setAttribute("aria-label", "의견함");
+          return;
+        }
+
+        var total = count || 0;
+        badge.hidden = total === 0;
+        badge.textContent = total > 99 ? "99+" : String(total);
+        button.setAttribute(
+          "aria-label",
+          total ? "의견함, 처리할 의견 " + total + "개" : "의견함",
+        );
+      }
+
       function closeFeedbackPanel() {
         document.getElementById("feedback-panel").classList.remove("open");
       }
@@ -2874,7 +2917,7 @@
           closeFeedbackPanel();
           return;
         }
-        if (activePolygon === polygon) closeSidebar();
+        closeSidebar();
         closeCurationPanel();
         panel.classList.add("open");
         loadFeedbackSubmissions();
@@ -2983,6 +3026,7 @@
         }
         feedbackSubmissions = data || [];
         renderFeedbackSubmissions();
+        updateFeedbackBadge();
       }
 
       function createFeedbackAction(label, onClick, isDanger) {
