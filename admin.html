@@ -1253,6 +1253,7 @@
         document.getElementById("login-overlay").style.display = "none";
         document.getElementById("btn-logout").style.display = "inline-block";
         updateFeedbackBadge();
+        await loadNeighborhoods();
       }
 
       async function handleLogout() {
@@ -1268,6 +1269,7 @@
           document.getElementById("login-overlay").style.display = "none";
           document.getElementById("btn-logout").style.display = "inline-block";
           updateFeedbackBadge();
+          loadNeighborhoods();
         }
       }
       checkAuth();
@@ -2158,13 +2160,56 @@
         }, 350);
       }
 
+      // 관리자 지도에서 공개·비공개 상태를 한눈에 구분한다.
+      // 비공개는 아직 외부에 공개하지 않은 작업 상태이므로, 경고색 대신 차분한 회청색을 쓴다.
+      function applyNeighborhoodPolygonStyle(polygon) {
+        var isPublished = polygon.myData && polygon.myData.published === true;
+        polygon.setOptions(
+          isPublished
+            ? {
+                strokeWeight: 3,
+                strokeColor: "#2ecc71",
+                strokeStyle: "solid",
+                fillColor: "#2ecc71",
+                fillOpacity: 0.5,
+              }
+            : {
+                strokeWeight: 3,
+                strokeColor: "#64748b",
+                strokeStyle: "dash",
+                fillColor: "#64748b",
+                fillOpacity: 0.22,
+              },
+        );
+      }
+
+      function clearLoadedNeighborhoods() {
+        savedPolygons.forEach(function (polygon) {
+          polygon.setMap(null);
+        });
+        savedPolygons = [];
+        if (activePolygon && activePolygon.myData && activePolygon.myData.saved) {
+          clearSubMarkers();
+          clearDevelopmentOverlays();
+          hideLabelMarker();
+          activePolygon = null;
+          document.getElementById("sidebar").classList.remove("open");
+        }
+      }
+
+      var neighborhoodLoadVersion = 0;
+
       // [추가] Supabase에 저장된 동네들을 지도에 불러와 표시
       async function loadNeighborhoods() {
+        var loadVersion = ++neighborhoodLoadVersion;
         var { data, error } = await sb.from("neighborhoods").select("*");
         if (error) {
           console.error("동네 목록 로딩 실패:", error);
           return;
         }
+        // 로그인 전 공개 목록 요청이 늦게 돌아와, 로그인 후 전체 목록을 덮어쓰지 않게 한다.
+        if (loadVersion !== neighborhoodLoadVersion) return;
+        clearLoadedNeighborhoods();
         data.forEach(function (row) {
           var path = row.polygon.map(function (p) {
             return new kakao.maps.LatLng(p.lat, p.lng);
@@ -2201,6 +2246,7 @@
             developmentOverlays: [],
             saved: true,
           };
+          applyNeighborhoodPolygonStyle(polygon);
           attachPolygonEvents(polygon);
           savedPolygons.push(polygon);
         });
@@ -2323,6 +2369,9 @@
         endBoundaryEdit(); // 다른 폴리곤을 열 때 이전 경계 수정 상태 정리
         closeCurationPanel();
         closeFeedbackPanel();
+        // 관리 화면에서는 공개 여부와 무관하게 저장된 동네 경계를 항상 유지한다.
+        // 간헐적인 오버레이 분리 상태가 있어도 편집을 열면 즉시 복구한다.
+        if (poly.myData && poly.myData.saved) poly.setMap(map);
         activePolygon = poly;
         var station = poly.myData.station || "";
         var name = poly.myData.name || "";
@@ -2375,12 +2424,20 @@
       }
 
       function closeSidebar() {
+        var closingPolygon = activePolygon;
         endBoundaryEdit();
         clearSubMarkers();
         clearDevelopmentOverlays();
         hideLabelMarker();
         document.getElementById("sidebar").classList.remove("open");
         activePolygon = null;
+        // 비공개는 이용자 화면의 노출 제어일 뿐, 관리자 지도에서는 숨김 조건이 아니다.
+        if (closingPolygon && closingPolygon.myData && closingPolygon.myData.saved) {
+          closingPolygon.setMap(map);
+          requestAnimationFrame(function () {
+            closingPolygon.setMap(map);
+          });
+        }
       }
 
       // ── 동네 이름표 위치 직접 조정 (안 옮기면 폴리곤 중심으로 자동 계산) ──
@@ -2817,11 +2874,7 @@
         if (!savedPolygons.includes(polygon)) savedPolygons.push(polygon);
         updateFullRescanStatus();
         polygon.setMap(map);
-        polygon.setOptions({
-          strokeColor: "#2ecc71",
-          fillColor: "#2ecc71",
-          fillOpacity: 0.5,
-        });
+        applyNeighborhoodPolygonStyle(polygon);
         alert("성공적으로 저장되었습니다.");
         closeSidebar();
       }
