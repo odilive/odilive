@@ -1566,7 +1566,6 @@
           '<p class="panel-eyebrow">FEEDBACK</p>' +
           '<h2 class="panel-title list-panel-title">의견을 들려주세요</h2>' +
           '<form class="feedback-form" onsubmit="submitFeedback(event)">' +
-          '<input id="feedback-area" type="text" maxlength="80" placeholder="관련 동네·지역 (선택)" />' +
           '<textarea id="feedback-message" maxlength="2000" required placeholder="알려주실 내용이나 의견을 적어주세요."></textarea>' +
           '<input id="feedback-email" type="email" maxlength="160" autocomplete="email" placeholder="답변 받을 이메일 주소 (선택)" />' +
           '<button class="feedback-submit" type="submit">의견 보내기</button>' +
@@ -1587,7 +1586,6 @@
         submit.disabled = true;
         result.textContent = "보내는 중입니다…";
         var response = await sb.from("feedback_submissions").insert({
-          area: document.getElementById("feedback-area").value.trim() || null,
           message: message,
           email: document.getElementById("feedback-email").value.trim() || null,
         });
