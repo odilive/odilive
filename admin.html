@@ -1021,6 +1021,12 @@
         id="t_price"
         placeholder="💰 월세 (보증금 1,000만 원 기준 · 예: 50~70만 원대)"
       />
+      <input
+        type="url"
+        id="t_property_url"
+        aria-label="네이버 부동산 매물 링크"
+        placeholder="네이버 부동산 매물 링크 (선택)"
+      />
       <textarea
         id="t_development"
         rows="2"
@@ -1109,12 +1115,12 @@
       <input
         type="text"
         id="t_youtube"
-        placeholder="▶ 유튜브 답사 영상 링크 (선택)"
+        placeholder="▶ 이 동네 영상 링크 (선택)"
       />
       <input
         type="text"
         id="t_blog"
-        placeholder="📝 블로그 소개글 링크 (선택)"
+        placeholder="📝 이 동네 이야기 링크 (선택)"
       />
       <button
         id="btn-edit-boundary"
@@ -2239,6 +2245,7 @@
             labelLng: row.label_lng,
             transit: row.transit || "",
             price: row.price || "",
+            propertyUrl: row.property_url || "",
             youtube: row.youtube_url || "",
             blog: row.blog_url || "",
             published: row.published || false,
@@ -2388,6 +2395,8 @@
           poly.myData.developmentHighlight === true;
         document.getElementById("t_transit").value = poly.myData.transit || "";
         document.getElementById("t_price").value = poly.myData.price || "";
+        document.getElementById("t_property_url").value =
+          poly.myData.propertyUrl || "";
         document.getElementById("t_youtube").value = poly.myData.youtube || "";
         document.getElementById("t_blog").value = poly.myData.blog || "";
         document.getElementById("t_published").checked =
@@ -2798,6 +2807,25 @@
         ).checked;
         var transit = document.getElementById("t_transit").value;
         var price = document.getElementById("t_price").value;
+        var propertyUrl = document.getElementById("t_property_url").value.trim();
+        if (propertyUrl) {
+          try {
+            var propertyLink = new URL(propertyUrl);
+            if (
+              propertyLink.protocol !== "https:" &&
+              propertyLink.protocol !== "http:"
+            ) {
+              throw new Error("Invalid link protocol");
+            }
+            propertyUrl = propertyLink.href;
+          } catch (error) {
+            alert(
+              "매물 링크에는 http:// 또는 https://로 시작하는 주소를 넣어주세요.",
+            );
+            document.getElementById("t_property_url").focus();
+            return;
+          }
+        }
         var youtube = document.getElementById("t_youtube").value;
         var blog = document.getElementById("t_blog").value;
         var showFacilities =
@@ -2823,6 +2851,11 @@
           published: published,
           show_facilities: showFacilities,
         };
+        // 링크를 쓰지 않는 기존 동네는 새 SQL 실행 전에도 저장할 수 있다.
+        // 기존 링크를 지우는 경우에는 null로 저장해 실제 DB에서도 삭제한다.
+        if (propertyUrl || polygon.myData.propertyUrl) {
+          row.property_url = propertyUrl || null;
+        }
 
         var result;
         if (polygon.myData.id) {
@@ -2835,7 +2868,13 @@
         }
 
         if (result.error) {
-          alert("저장 실패: " + result.error.message);
+          if (result.error.message.indexOf("property_url") !== -1) {
+            alert(
+              "매물 링크 저장 칸을 먼저 추가해주세요. Supabase SQL Editor에서 supabase-neighborhood-property-link.sql을 실행한 뒤 다시 저장하세요.",
+            );
+          } else {
+            alert("저장 실패: " + result.error.message);
+          }
           return;
         }
 
@@ -2865,6 +2904,7 @@
           : null;
         polygon.myData.transit = transit;
         polygon.myData.price = price;
+        polygon.myData.propertyUrl = propertyUrl;
         polygon.myData.youtube = youtube;
         polygon.myData.blog = blog;
         polygon.myData.published = published;

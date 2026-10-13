@@ -376,6 +376,24 @@
       #info-specs .spec-text {
         color: var(--ink-soft);
       }
+      #info-specs .spec-row-price.has-property-link {
+        gap: 5px;
+      }
+      #info-specs .spec-row-price .spec-text {
+        min-width: 0;
+      }
+      .spec-property-link {
+        flex-shrink: 0;
+        margin-left: auto;
+        color: var(--brand-teal);
+        font-size: 12px;
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .spec-property-link:hover {
+        text-decoration: underline;
+      }
       .spec-info-btn {
         border: 1.5px solid var(--ink-soft);
         background: none;
@@ -433,20 +451,27 @@
       #info-links:empty {
         display: none;
       }
-      #info-links a {
+      #info-links .info-content-link {
         flex: 1;
+        min-width: 0;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 6px;
         padding: 10px;
+        border: 0;
         border-radius: 8px;
+        font-family: inherit;
         font-size: 13px;
         font-weight: bold;
         text-decoration: none;
       }
-      #info-links a svg {
+      #info-links .info-content-link svg {
         flex-shrink: 0;
+      }
+      #info-links .info-content-link:disabled {
+        opacity: 0.45;
+        cursor: default;
       }
       #info-links .link-youtube {
         background: #fdeaea;
@@ -493,7 +518,7 @@
         justify-content: center;
         gap: 5px;
         flex-wrap: wrap;
-        margin-bottom: 16px;
+        margin-bottom: 0;
         padding-bottom: 16px;
         border-bottom: 1px solid var(--line);
       }
@@ -768,6 +793,7 @@
       }
       .story-channel-links {
         display: none;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
         margin-top: 12px;
         flex-shrink: 0;
@@ -778,9 +804,9 @@
       .story-channel-link {
         display: flex;
         align-items: center;
-        gap: 11px;
+        gap: 8px;
         width: 100%;
-        padding: 11px 12px;
+        padding: 11px 10px;
         border: 1px solid transparent;
         border-radius: 12px;
         box-sizing: border-box;
@@ -800,7 +826,7 @@
       }
       .story-channel-link:disabled {
         cursor: default;
-        opacity: 1;
+        opacity: 0.65;
       }
       .story-channel-icon {
         display: grid;
@@ -831,12 +857,6 @@
         font-size: 11px;
         font-weight: 600;
         line-height: 1.2;
-      }
-      .story-channel-link small {
-        flex: 0 0 auto;
-        color: #949494;
-        font-size: 10px;
-        font-weight: 700;
       }
       .neighborhood-list {
         display: flex;
@@ -1390,9 +1410,9 @@
           <div id="info-amenities"></div>
           <div id="info-facility-summary"></div>
         </div>
+        <div id="info-links"></div>
         <div id="info-desc"></div>
       </div>
-      <div id="info-links"></div>
     </div>
 
     <aside id="site-panel" aria-live="polite">
@@ -1426,10 +1446,9 @@
             </svg>
           </span>
           <span class="story-channel-copy">
-            <strong>유튜브 채널</strong>
-            <span>직접 다녀본 답사 영상</span>
+            <strong>동네 영상</strong>
+            <span>준비 중</span>
           </span>
-          <small>준비 중</small>
         </button>
         <button class="story-channel-link blog" type="button" disabled>
           <span class="story-channel-icon" aria-hidden="true">
@@ -1443,10 +1462,9 @@
             </svg>
           </span>
           <span class="story-channel-copy">
-            <strong>네이버 블로그</strong>
-            <span>답사 기행과 자세한 기록</span>
+            <strong>동네 이야기</strong>
+            <span>준비 중</span>
           </span>
-          <small>준비 중</small>
         </button>
       </div>
     </aside>
@@ -2287,8 +2305,10 @@
 
       function toggleSpecInfo(e) {
         e.stopPropagation();
-        var btn = e.target;
-        var tip = btn.nextElementSibling;
+        var btn = e.currentTarget;
+        var tip = btn
+          .closest(".spec-row-info")
+          .querySelector(".spec-info-tooltip");
         var wasOpen = tip.classList.contains("open");
         document
           .querySelectorAll(".spec-info-tooltip.open")
@@ -2318,6 +2338,18 @@
           .replace(/\"/g, "&quot;")
           .replace(/'/g, "&#039;")
           .replace(/\r?\n/g, "<br>");
+      }
+
+      function externalLinkUrl(value) {
+        if (!value || !String(value).trim()) return "";
+        try {
+          var url = new URL(String(value).trim());
+          return url.protocol === "https:" || url.protocol === "http:"
+            ? url.href
+            : "";
+        } catch (error) {
+          return "";
+        }
       }
 
       function openInfoPanel(row, bounds) {
@@ -2368,11 +2400,19 @@
             '</span><button class="spec-info-btn" onclick="toggleSpecInfo(event)">?</button>' +
             '<div class="spec-info-tooltip">도보이동 제외한 지하철 소요시간 기준이에요.' +
             "</div></div>";
+        var propertyUrl = externalLinkUrl(row.property_url);
         if (row.price)
           specs +=
-            '<div class="spec-row-info"><span class="spec-label">월세</span><span class="spec-text">' +
-            row.price +
-            '</span><button class="spec-info-btn" onclick="toggleSpecInfo(event)">?</button>' +
+            '<div class="spec-row-info spec-row-price' +
+            (propertyUrl ? ' has-property-link' : '') +
+            '"><span class="spec-label">월세</span><span class="spec-text">' +
+            formatSpecText(row.price) +
+            '</span><button type="button" class="spec-info-btn" aria-label="월세 기준 안내" onclick="toggleSpecInfo(event)">?</button>' +
+            (propertyUrl
+              ? '<a class="spec-property-link" href="' +
+                formatSpecText(propertyUrl) +
+                '" target="_blank" rel="noopener noreferrer" aria-label="네이버 부동산에서 이 동네 매물 보기">매물 ↗</a>'
+              : "") +
             '<div class="spec-info-tooltip">보증금 1,000만 원 기준의 대략적인 월세입니다.' +
             '<span class="spec-info-note">관리비와 집의 면적·상태·계약 조건에 따라 달라질 수 있어요.</span>' +
             "</div></div>";
@@ -2396,22 +2436,38 @@
         var NAVER_ICON =
           '<svg width="13" height="13" viewBox="0 0 20 20"><rect width="20" height="20" rx="3" fill="#03C75A"/><path fill="#fff" d="M11.35 10.25 8.5 6.19H5.81v7.62H8.5v-4.06l2.85 4.06h2.69V6.19h-2.69v4.06z"/></svg>';
 
-        var links = "";
-        if (row.youtube_url)
-          links +=
-            '<a class="link-youtube" href="' +
-            row.youtube_url +
-            '" target="_blank">' +
-            YT_ICON +
-            " 답사 영상</a>";
-        if (row.blog_url)
-          links +=
-            '<a class="link-blog" href="' +
-            row.blog_url +
-            '" target="_blank">' +
-            NAVER_ICON +
-            " 답사 기행</a>";
-        document.getElementById("info-links").innerHTML = links;
+        var contentLinks = [
+          {
+            name: "이 동네 영상",
+            className: "link-youtube",
+            icon: YT_ICON,
+            url: externalLinkUrl(row.youtube_url),
+          },
+          {
+            name: "이 동네 이야기",
+            className: "link-blog",
+            icon: NAVER_ICON,
+            url: externalLinkUrl(row.blog_url),
+          },
+        ];
+        var links = document.getElementById("info-links");
+        links.replaceChildren();
+        contentLinks.forEach(function (item) {
+          var link = document.createElement(item.url ? "a" : "button");
+          link.className = "info-content-link " + item.className;
+          link.innerHTML = item.icon;
+          link.appendChild(document.createTextNode(item.name));
+          if (item.url) {
+            link.href = item.url;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+          } else {
+            link.type = "button";
+            link.disabled = true;
+            link.setAttribute("aria-label", item.name + " (준비 중)");
+          }
+          links.appendChild(link);
+        });
 
         var infoPanel = document.getElementById("info-panel");
         var isShortInfo =
@@ -2419,7 +2475,9 @@
           visibleSpecs.length <= 2 &&
           !amenitiesHtml &&
           !facilitySummaryHtml &&
-          !links;
+          !contentLinks.some(function (item) {
+            return !!item.url;
+          });
         infoPanel.classList.remove("is-closing-peek");
         infoPanel.classList.add("open");
         infoPanel.classList.toggle("is-short-info", isShortInfo);
