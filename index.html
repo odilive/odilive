@@ -12,13 +12,16 @@
     <meta property="og:title" content="어디살까? 자취하기 좋은 동네!" />
     <meta
       property="og:description"
-      content="직접 다녀보고 추천하는 자취 동네"
+      content="직접 다녀보고 알려주는 동네 정보"
     />
     <meta
       property="og:image"
-      content="https://odilive.github.io/odilive/og-image.png?v=2"
+      content="https://odilive.kr/og-image.png?v=3"
     />
-    <meta property="og:url" content="https://odilive.github.io/odilive/" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="어디살까 로고" />
+    <meta property="og:url" content="https://odilive.kr/" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
@@ -1085,12 +1088,6 @@
           max-height: 45vh;
           padding: 24px 54px 12px 18px;
         }
-        #info-panel.is-peek.expand-hint {
-          animation: info-sheet-expand-hint 560ms ease-out;
-        }
-        #info-panel.is-peek.expand-hint #info-peek-next {
-          animation: info-peek-next-hint 560ms ease-out;
-        }
         #info-panel.is-peek .info-actions,
         #info-panel.is-peek #info-scroll,
         #info-panel.is-peek #info-links {
@@ -1166,24 +1163,6 @@
           font-size: 11px;
           font-weight: 800;
         }
-        @keyframes info-peek-next-hint {
-          0%,
-          100% {
-            max-height: 19px;
-          }
-          48% {
-            max-height: 38px;
-          }
-        }
-        @keyframes info-sheet-expand-hint {
-          0%,
-          100% {
-            min-height: 126px;
-          }
-          48% {
-            min-height: 152px;
-          }
-        }
         #site-panel {
           top: 0;
           right: -400px;
@@ -1236,13 +1215,6 @@
           width: fit-content;
           max-width: calc(100% - 36px);
           font-size: 12px;
-        }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        #info-panel.is-peek.expand-hint,
-        #info-panel.is-peek.expand-hint #info-peek-next {
-          animation: none;
         }
       }
 
@@ -1719,7 +1691,7 @@
         }, 350);
       }
 
-      // 모바일에서는 상단부를 끌거나, 본문이 맨 위일 때 아래로 당겨 패널을 닫을 수 있다.
+      // 모바일에서는 손잡이·상단부 또는 맨 위의 본문을 당겨 접고, 다시 당기면 닫는다.
       function enableMobileSheetDrag(panelId, scrollId, closePanel) {
         var panel = document.getElementById(panelId);
         var scroll = document.getElementById(scrollId);
@@ -2468,23 +2440,10 @@
         });
 
         var infoPanel = document.getElementById("info-panel");
-        var isShortInfo =
-          isPhoneInfoPanel() &&
-          visibleSpecs.length <= 2 &&
-          !amenitiesHtml &&
-          !facilitySummaryHtml &&
-          !contentLinks.some(function (item) {
-            return !!item.url;
-          });
-        infoPanel.classList.remove("is-closing-peek");
+        // 처음 선택할 때는 상세 정보를 바로 보여주고, 사용자가 내려 접을 때만 요약한다.
+        infoPanel.classList.remove("is-closing-peek", "is-peek");
         infoPanel.classList.add("open");
-        infoPanel.classList.toggle("is-short-info", isShortInfo);
-        infoPanel.classList.toggle(
-          "is-peek",
-          isPhoneInfoPanel() && !isShortInfo,
-        );
-        if (infoPanel.classList.contains("is-peek") && !isShortInfo)
-          hintInfoPanelExpansion();
+        document.getElementById("info-scroll").scrollTop = 0;
         // 편·빨·약 표시를 끈 동네는 상세 요약뿐 아니라 지도 이모지도 보여주지 않는다.
         // 빈 배열을 전달해 이전에 열었던 동네의 이모지도 함께 정리한다.
         renderCachedFacilities(
@@ -2587,7 +2546,7 @@
         clearDevelopmentOverlays();
         var panel = document.getElementById("info-panel");
         var wasPeek = panel.classList.contains("is-peek");
-        panel.classList.remove("open", "expand-hint");
+        panel.classList.remove("open");
         if (wasPeek) {
           // 축소 높이를 유지한 채 화면 밖으로 보낸 뒤에만 상태를 정리한다.
           // 그렇지 않으면 전체 높이로 잠깐 커지며 위로 튀어 보인다.
@@ -2597,15 +2556,11 @@
               panel.classList.contains("is-closing-peek") &&
               !panel.classList.contains("open")
             ) {
-              panel.classList.remove(
-                "is-peek",
-                "is-short-info",
-                "is-closing-peek",
-              );
+              panel.classList.remove("is-peek", "is-closing-peek");
             }
           }, 320);
         } else {
-          panel.classList.remove("is-peek", "is-short-info", "is-closing-peek");
+          panel.classList.remove("is-peek", "is-closing-peek");
         }
         if (selectedNeighborhood) {
           selectedNeighborhood.polygon.setMap(null);
@@ -2628,7 +2583,7 @@
       window.addEventListener("resize", function () {
         var panel = document.getElementById("info-panel");
         if (!isPhoneInfoPanel() && panel.classList.contains("open")) {
-          panel.classList.remove("is-peek", "is-short-info", "expand-hint");
+          panel.classList.remove("is-peek");
         }
         updateDevelopmentOverlayLabelVisibility();
       });
@@ -2645,10 +2600,7 @@
 
       function handleInfoSheetPullDown() {
         var panel = document.getElementById("info-panel");
-        if (
-          panel.classList.contains("is-peek") ||
-          panel.classList.contains("is-short-info")
-        ) {
+        if (panel.classList.contains("is-peek")) {
           closeInfoPanel();
           return "closed";
         }
@@ -2658,17 +2610,7 @@
 
       function expandInfoPanel() {
         var panel = document.getElementById("info-panel");
-        panel.classList.remove("is-peek", "expand-hint");
-      }
-
-      function hintInfoPanelExpansion() {
-        var panel = document.getElementById("info-panel");
-        panel.classList.remove("expand-hint");
-        window.requestAnimationFrame(function () {
-          if (panel.classList.contains("is-peek")) {
-            panel.classList.add("expand-hint");
-          }
-        });
+        panel.classList.remove("is-peek");
       }
 
       function handleInfoClose() {
