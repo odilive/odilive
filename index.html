@@ -379,14 +379,15 @@
       #info-specs .spec-text {
         color: var(--ink-soft);
       }
-      #info-specs .spec-row-price.has-property-link {
-        gap: 5px;
-      }
-      #info-specs .spec-row-price .spec-text {
+      #info-specs .spec-price-content {
+        flex: 1;
         min-width: 0;
+        word-break: keep-all;
+      }
+      #info-specs .spec-price-content .spec-info-btn {
+        vertical-align: middle;
       }
       .spec-property-link {
-        flex-shrink: 0;
         color: var(--brand-teal);
         font-size: 12px;
         font-weight: 600;
@@ -2372,16 +2373,15 @@
         var propertyUrl = externalLinkUrl(row.property_url);
         if (row.price)
           specs +=
-            '<div class="spec-row-info spec-row-price' +
-            (propertyUrl ? ' has-property-link' : '') +
-            '"><span class="spec-label">월세</span><span class="spec-text">' +
+            '<div class="spec-row-info spec-row-price"><span class="spec-label">월세</span><span class="spec-price-content"><span class="spec-text">' +
             formatSpecText(row.price) +
-            '</span><button type="button" class="spec-info-btn" aria-label="월세 기준 안내" onclick="toggleSpecInfo(event)">?</button>' +
+            '</span> <button type="button" class="spec-info-btn" aria-label="월세 기준 안내" onclick="toggleSpecInfo(event)">?</button>' +
             (propertyUrl
-              ? '<a class="spec-property-link" href="' +
+              ? ' <a class="spec-property-link" href="' +
                 formatSpecText(propertyUrl) +
                 '" target="_blank" rel="noopener noreferrer" aria-label="네이버 부동산에서 이 동네 매물 보기">매물 ↗</a>'
               : "") +
+            '</span>' +
             '<div class="spec-info-tooltip">보증금 1,000만 원 기준의 대략적인 월세입니다.' +
             '<span class="spec-info-note">관리비와 집의 면적·상태·계약 조건에 따라 달라질 수 있어요.</span>' +
             "</div></div>";
