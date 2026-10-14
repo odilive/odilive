@@ -387,7 +387,6 @@
       }
       .spec-property-link {
         flex-shrink: 0;
-        margin-left: auto;
         color: var(--brand-teal);
         font-size: 12px;
         font-weight: 600;
@@ -2422,6 +2421,7 @@
         ];
         var links = document.getElementById("info-links");
         links.replaceChildren();
+        if (isDevHighlighted(row)) contentLinks = [];
         contentLinks.forEach(function (item) {
           var link = document.createElement(item.url ? "a" : "button");
           link.className = "info-content-link " + item.className;
