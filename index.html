@@ -1812,6 +1812,7 @@
           keywords: ["대형슈퍼"],
           categoryName: "대형슈퍼",
           icon: "large-supermarket.svg",
+          markerSize: 28,
         },
         대형마트: {
           active: false,
@@ -1820,6 +1821,7 @@
           categories: ["MT1"],
           categoryName: "대형마트", // 같은 MT1에 포함되는 대형슈퍼는 제외한다.
           icon: "large-mart.svg",
+          markerSize: 34,
         },
       };
       // 폴리곤(10)보다 위, 동네 이름 라벨(20)보다 아래에서 브랜드끼리의 겹침 순서를 통일한다.
@@ -1871,7 +1873,8 @@
                 var finalIcon = brandData[brand].icon;
 
                 if (!brandData[brand].markers[place.id]) {
-                  var imageSize = new kakao.maps.Size(30, 30);
+                  var markerSize = brandData[brand].markerSize || 30;
+                  var imageSize = new kakao.maps.Size(markerSize, markerSize);
                   var markerImage = new kakao.maps.MarkerImage(
                     finalIcon,
                     imageSize,
@@ -2487,6 +2490,7 @@
           if (brandData[brand].active) return;
           nearbyBrandMarkers[brand] = nearbyBrandMarkers[brand] || [];
           var icon = brandData[brand].icon;
+          var markerSize = brandData[brand].markerSize || 30;
           var handleResults = function (data, status) {
             if (status !== kakao.maps.services.Status.OK) return;
             data.forEach(function (place) {
@@ -2494,7 +2498,7 @@
                 position: new kakao.maps.LatLng(place.y, place.x),
                 image: new kakao.maps.MarkerImage(
                   icon,
-                  new kakao.maps.Size(30, 30),
+                  new kakao.maps.Size(markerSize, markerSize),
                 ),
                 map: map,
                 // 상세 동네를 선택해 강제로 보여주는 주변 인프라도 같은 순서를 쓴다.
