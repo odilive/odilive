@@ -1446,6 +1446,7 @@
       src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=4221957d3296d5b1b0a48b671070d6cc&libraries=services"
     ></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="infrastructure-search.js"></script>
 
     <script>
       var SUPABASE_URL = "https://luibrbeiykqyyeatornq.supabase.co";
@@ -1809,12 +1810,21 @@
           active: false,
           markers: {},
           keywords: ["대형슈퍼"],
-          categories: ["MT1"], // 카카오 공식 '대형마트' 분류 (이마트·홈플러스·롯데마트·코스트코 등)
+          categoryName: "대형슈퍼",
+          icon: "large-supermarket.svg",
+        },
+        대형마트: {
+          active: false,
+          markers: {},
+          keywords: [],
+          categories: ["MT1"],
+          categoryName: "대형마트", // 같은 MT1에 포함되는 대형슈퍼는 제외한다.
           icon: "ssm.png",
         },
       };
       // 폴리곤(10)보다 위, 동네 이름 라벨(20)보다 아래에서 브랜드끼리의 겹침 순서를 통일한다.
       var BRAND_MARKER_Z_INDEX = {
+        대형마트: 19,
         대형슈퍼: 18,
         다이소: 17,
         스타벅스: 16,
@@ -1824,6 +1834,22 @@
       // 이용자 화면의 자취 인프라는 브랜드별 필터가 아닌, 전체 인프라 탐색 모드다.
       var isBrandExploreMode = false;
       var infoWindow = new kakao.maps.InfoWindow({ zIndex: 999 });
+
+      // 토글·동네 자동 표출 모두 같은 마트/슈퍼 이름 말풍선을 사용한다.
+      function bindInfrastructureMarkerHover(marker, brand, place) {
+        if (brand !== "대형슈퍼" && brand !== "대형마트") return;
+        var content = document.createElement("div");
+        content.style.cssText =
+          "padding:6px 10px; font-size:12px; font-weight:bold; color:#06474f; white-space:nowrap; text-align:center; font-family:sans-serif;";
+        content.textContent = place.place_name;
+        kakao.maps.event.addListener(marker, "mouseover", function () {
+          infoWindow.setContent(content);
+          infoWindow.open(map, marker);
+        });
+        kakao.maps.event.addListener(marker, "mouseout", function () {
+          infoWindow.close();
+        });
+      }
 
       function updateBrandMarkers() {
         if (map.getLevel() > NEIGHBORHOOD_ZOOM_THRESHOLD) return; // 역단위로 축소된 상태에서는 검색도 생략
@@ -1858,28 +1884,7 @@
                     zIndex: BRAND_MARKER_Z_INDEX[brand] || 10,
                   });
 
-                  if (brand === "대형슈퍼") {
-                    var content = `
-                      <div style="padding:6px 10px; font-size:12px; font-weight:bold; color:#06474f; white-space:nowrap; text-align:center; font-family:sans-serif;">
-                        ${place.place_name}
-                      </div>
-                    `;
-                    kakao.maps.event.addListener(
-                      marker,
-                      "mouseover",
-                      function () {
-                        infoWindow.setContent(content);
-                        infoWindow.open(map, marker);
-                      },
-                    );
-                    kakao.maps.event.addListener(
-                      marker,
-                      "mouseout",
-                      function () {
-                        infoWindow.close();
-                      },
-                    );
-                  }
+                  bindInfrastructureMarkerHover(marker, brand, place);
 
                   kakao.maps.event.addListener(marker, "click", function () {
                     if (place.place_url) {
@@ -1893,12 +1898,7 @@
             }
           };
 
-          brandData[brand].keywords.forEach((keyword) => {
-            ps.keywordSearch(keyword, handleResults, { bounds: bounds });
-          });
-          (brandData[brand].categories || []).forEach((code) => {
-            ps.categorySearch(code, handleResults, { bounds: bounds });
-          });
+          InfrastructureSearch.search(ps, brandData[brand], bounds, handleResults);
         });
       }
 
@@ -1925,7 +1925,7 @@
           .classList.toggle("is-active", anyActive);
       }
 
-      // 다이소·올리브영·스벅·대형슈퍼를 "우리가 정한 인프라 세트"로 한 번에 켜고 끔
+      // 다이소·올리브영·스벅·대형슈퍼·대형마트를 한 번에 켜고 끔
       function toggleAllBrands() {
         closeMapGuide();
         closeSiteMenu();
@@ -2138,7 +2138,7 @@
         var AMENITY_LOGO = {
           다이소: "daiso.png",
           올리브영: "olive.png",
-          대형슈퍼: "ssm.png",
+          대형슈퍼: "large-supermarket.svg",
         };
         return ["다이소", "올리브영", "대형슈퍼"]
           .filter(function (item) {
@@ -2468,7 +2468,7 @@
         );
       }
 
-      // 동네 상세정보를 열 때, 그 동네 경계에서 500m 이내의 자취인프라(다이소·올리브영·스벅·대형슈퍼)를
+      // 동네 상세정보를 열 때, 그 동네 경계에서 500m 이내의 자취인프라를
       // 자취인프라 토글 상태와 무관하게 정확한 위치 참고용으로 같이 보여줌
       var BRAND_NEARBY_BUFFER_METERS = 500;
       var nearbyBrandMarkers = {}; // 상세정보에서 보여준 브랜드별 마커 (토글이 나중에 켜지면 정리용)
@@ -2500,6 +2500,7 @@
                 // 상세 동네를 선택해 강제로 보여주는 주변 인프라도 같은 순서를 쓴다.
                 zIndex: BRAND_MARKER_Z_INDEX[brand] || 10,
               });
+              bindInfrastructureMarkerHover(marker, brand, place);
               kakao.maps.event.addListener(marker, "click", function () {
                 if (place.place_url) window.open(place.place_url, "_blank");
               });
@@ -2507,12 +2508,7 @@
               nearbyBrandMarkers[brand].push(marker);
             });
           };
-          brandData[brand].keywords.forEach(function (keyword) {
-            ps.keywordSearch(keyword, handleResults, { bounds: bounds });
-          });
-          (brandData[brand].categories || []).forEach(function (code) {
-            ps.categorySearch(code, handleResults, { bounds: bounds });
-          });
+          InfrastructureSearch.search(ps, brandData[brand], bounds, handleResults);
         });
       }
 

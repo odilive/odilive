@@ -514,6 +514,9 @@
       .filter.ssm.active {
         background: #f39c12; /* 대형슈퍼 오렌지 (기존 유지) */
       }
+      .filter.mart.active {
+        background: #546e7a;
+      }
 
       #sidebar,
       #curation-panel,
@@ -905,7 +908,14 @@
           class="btn filter ssm active"
           onclick="toggleBrand('대형슈퍼')"
         >
-          <img src="ssm.png" alt="대형슈퍼" class="btn-logo" /> &nbsp;대형슈퍼
+          <img src="large-supermarket.svg" alt="대형슈퍼" class="btn-logo" /> &nbsp;대형슈퍼
+        </button>
+        <button
+          id="filter-mart"
+          class="btn filter mart active"
+          onclick="toggleBrand('대형마트')"
+        >
+          <img src="ssm.png" alt="대형마트" class="btn-logo" /> &nbsp;대형마트
         </button>
         </div>
         </div>
@@ -1239,6 +1249,7 @@
       src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=4221957d3296d5b1b0a48b671070d6cc&libraries=services"
     ></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="infrastructure-search.js"></script>
 
     <script>
       // ── 관리자 인증 (Supabase Auth) ──
@@ -1344,9 +1355,18 @@
           active: true,
           markers: {},
           keywords: ["대형슈퍼"],
-          categories: ["MT1"], // 카카오 공식 '대형마트' 분류 (이마트·홈플러스·롯데마트·코스트코 등)
+          categoryName: "대형슈퍼",
           btnId: "filter-ssm",
-          icon: "ssm.png", // 카트 아이콘
+          icon: "large-supermarket.svg",
+        },
+        대형마트: {
+          active: true,
+          markers: {},
+          keywords: [],
+          categories: ["MT1"],
+          categoryName: "대형마트",
+          btnId: "filter-mart",
+          icon: "ssm.png", // 기존 카트 아이콘 유지
         },
       };
 
@@ -1355,13 +1375,10 @@
 
       function updateBrandMarkers() {
         var bounds = map.getBounds();
-        var level = map.getLevel();
-
-        // 1. 레벨 4 이하에서만 마커가 보이도록 설정 (사용자님 기준 유지)
-        var isZoomIn = level <= 4;
 
         // 2. 브랜드별 겹침 우선순위 설정 (숫자가 높을수록 위로 올라옴)
         var brandPriority = {
+          대형마트: 110,
           대형슈퍼: 100,
           다이소: 90,
           스타벅스: 80,
@@ -1389,8 +1406,8 @@
                   var marker = new kakao.maps.Marker({
                     position: new kakao.maps.LatLng(place.y, place.x),
                     image: markerImage,
-                    // 확대 상태면 보이고 아니면 숨김
-                    map: isZoomIn ? map : null,
+                    // 응답을 받은 현재 축척·필터 상태로 표시한다 (레벨 4 기준 유지).
+                    map: brandData[brand].active && map.getLevel() <= 4 ? map : null,
                     // ★ 브랜드 우선순위에 따라 겹침 순서 결정 ★
                     zIndex: brandPriority[brand] || 10,
                   });
@@ -1399,8 +1416,8 @@
                   // ★ [기능 수정] 모든 브랜드 클릭 시 상세페이지 이동 기본 탑재 ★
                   // ========================================================
 
-                  // 1. 대형슈퍼만 '말풍선 호버링' 이벤트 추가
-                  if (brand === "대형슈퍼") {
+                  // 1. 대형슈퍼·대형마트에 '말풍선 호버링' 이벤트 추가
+                  if (brand === "대형슈퍼" || brand === "대형마트") {
                     var content = `
                       <div style="padding:6px 10px; font-size:12px; font-weight:bold; color:#2c3e50; white-space:nowrap; text-align:center; font-family:sans-serif;">
                         ${place.place_name}
@@ -1441,12 +1458,7 @@
             }
           };
 
-          brandData[brand].keywords.forEach((keyword) => {
-            ps.keywordSearch(keyword, handleResults, { bounds: bounds });
-          });
-          (brandData[brand].categories || []).forEach((code) => {
-            ps.categorySearch(code, handleResults, { bounds: bounds });
-          });
+          InfrastructureSearch.search(ps, brandData[brand], bounds, handleResults);
         });
       }
 
