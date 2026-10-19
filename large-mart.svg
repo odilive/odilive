@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 32 32" fill="none" stroke="#20292e" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+  <title>Large mart cart</title>
+  <path d="M3.5 4.5h2.2c.9 0 1.4.5 1.6 1.5l3.4 15c.3 1.2 1 1.9 2.4 1.9h12.1"/>
+  <path d="M8 9h19c1 0 1.5.7 1.2 1.7L26 18.4c-.3 1-.9 1.5-2 1.5H10.5"/>
+  <path d="m13.7 12.7.6 3.6m4.4-3.6v3.6m5-3.6-.6 3.6" stroke-width="2.4"/>
+  <circle cx="12.8" cy="27" r="1.65" stroke-width="1.9"/>
+  <circle cx="24.2" cy="27" r="1.65" stroke-width="1.9"/>
+</svg>
