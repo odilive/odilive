@@ -1836,20 +1836,70 @@
       // 이용자 화면의 자취 인프라는 브랜드별 필터가 아닌, 전체 인프라 탐색 모드다.
       var isBrandExploreMode = false;
       var infoWindow = new kakao.maps.InfoWindow({ zIndex: 999 });
+      var infrastructureInfoMarker = null;
 
-      // 토글·동네 자동 표출 모두 같은 마트/슈퍼 이름 말풍선을 사용한다.
-      function bindInfrastructureMarkerHover(marker, brand, place) {
-        if (brand !== "대형슈퍼" && brand !== "대형마트") return;
-        var content = document.createElement("div");
-        content.style.cssText =
-          "padding:6px 10px; font-size:12px; font-weight:bold; color:#06474f; white-space:nowrap; text-align:center; font-family:sans-serif;";
-        content.textContent = place.place_name;
-        kakao.maps.event.addListener(marker, "mouseover", function () {
-          infoWindow.setContent(content);
-          infoWindow.open(map, marker);
+      function isInfrastructureTouchMode() {
+        return window.matchMedia("(hover: none), (pointer: coarse)").matches;
+      }
+
+      function closeInfrastructureInfo() {
+        infoWindow.close();
+        infrastructureInfoMarker = null;
+      }
+
+      function showInfrastructureInfo(marker, place, touchMode) {
+        var hasLink = touchMode && !!place.place_url;
+        var content = document.createElement(hasLink ? "a" : "div");
+        content.className = "infrastructure-place-info";
+        content.style.cssText = touchMode
+          ? "display:block; box-sizing:border-box; min-width:150px; max-width:250px; min-height:44px; padding:10px 12px; color:#06474f; text-decoration:none; font-family:inherit; font-size:13px; line-height:1.5; overflow-wrap:anywhere;"
+          : "padding:6px 10px; font-size:12px; font-weight:bold; color:#06474f; white-space:nowrap; text-align:center; font-family:sans-serif;";
+        var name = document.createElement("span");
+        name.style.fontWeight = "bold";
+        name.textContent = place.place_name;
+        content.appendChild(name);
+        if (hasLink) {
+          content.href = place.place_url.replace(/^http:/i, "https:");
+          content.target = "_blank";
+          content.rel = "noopener noreferrer";
+          var action = document.createElement("span");
+          action.style.cssText = "display:block; margin-top:3px; font-size:12px; color:#085e6a;";
+          action.textContent = "카카오맵에서 보기 ↗";
+          content.appendChild(action);
+        }
+        // 말풍선의 링크 터치가 지도 클릭·드래그로 전달되지 않게 한다.
+        ["pointerdown", "mousedown", "touchstart", "click"].forEach(function (eventName) {
+          content.addEventListener(eventName, function (event) {
+            event.stopPropagation();
+            kakao.maps.event.preventMap();
+          });
         });
-        kakao.maps.event.addListener(marker, "mouseout", function () {
-          infoWindow.close();
+        infoWindow.setContent(content);
+        infoWindow.open(map, marker);
+        infrastructureInfoMarker = marker;
+      }
+
+      // 토글·동네 자동 표출 모두 PC는 호버, 터치 기기는 말풍선의 링크로 이동한다.
+      function bindInfrastructureMarkerEvents(marker, brand, place) {
+        var showsName = brand === "대형슈퍼" || brand === "대형마트";
+        if (showsName) {
+          marker.setClickable(true);
+          kakao.maps.event.addListener(marker, "mouseover", function () {
+            if (!isInfrastructureTouchMode()) showInfrastructureInfo(marker, place, false);
+          });
+          kakao.maps.event.addListener(marker, "mouseout", function () {
+            if (!isInfrastructureTouchMode() && infrastructureInfoMarker === marker) {
+              closeInfrastructureInfo();
+            }
+          });
+        }
+        kakao.maps.event.addListener(marker, "click", function () {
+          closeInfrastructureInfo();
+          if (showsName && isInfrastructureTouchMode()) {
+            showInfrastructureInfo(marker, place, true);
+            return;
+          }
+          if (place.place_url) window.open(place.place_url, "_blank");
         });
       }
 
@@ -1887,13 +1937,7 @@
                     zIndex: BRAND_MARKER_Z_INDEX[brand] || 10,
                   });
 
-                  bindInfrastructureMarkerHover(marker, brand, place);
-
-                  kakao.maps.event.addListener(marker, "click", function () {
-                    if (place.place_url) {
-                      window.open(place.place_url, "_blank");
-                    }
-                  });
+                  bindInfrastructureMarkerEvents(marker, brand, place);
 
                   brandData[brand].markers[place.id] = marker;
                 }
@@ -1906,6 +1950,7 @@
       }
 
       function toggleBrand(brand) {
+        closeInfrastructureInfo();
         var state = brandData[brand];
         state.active = !state.active;
         Object.values(state.markers).forEach((marker) => {
@@ -1930,6 +1975,7 @@
 
       // 다이소·올리브영·스벅·대형슈퍼·대형마트를 한 번에 켜고 끔
       function toggleAllBrands() {
+        closeInfrastructureInfo();
         closeMapGuide();
         closeSiteMenu();
         var allActive = isBrandExploreMode;
@@ -1968,11 +2014,13 @@
 
       kakao.maps.event.addListener(map, "idle", updateBrandMarkers);
       kakao.maps.event.addListener(map, "zoom_changed", function () {
+        closeInfrastructureInfo();
         cancelSelectedNeighborhoodFocus();
         closeMapGuide();
         updateNeighborhoodVisibility();
       });
       kakao.maps.event.addListener(map, "dragstart", function () {
+        closeInfrastructureInfo();
         cancelSelectedNeighborhoodFocus();
         closeMapGuide();
       });
@@ -1990,6 +2038,7 @@
       var visibleDevelopmentOverlayLabels = [];
 
       function clearSubMarkers() {
+        closeInfrastructureInfo();
         subMarkers.forEach(function (marker) {
           marker.setMap(null);
         });
@@ -2477,6 +2526,9 @@
       var nearbyBrandMarkers = {}; // 상세정보에서 보여준 브랜드별 마커 (토글이 나중에 켜지면 정리용)
 
       function clearNearbyBrandMarkers(brand) {
+        if ((nearbyBrandMarkers[brand] || []).indexOf(infrastructureInfoMarker) !== -1) {
+          closeInfrastructureInfo();
+        }
         (nearbyBrandMarkers[brand] || []).forEach(function (marker) {
           marker.setMap(null);
         });
@@ -2504,10 +2556,7 @@
                 // 상세 동네를 선택해 강제로 보여주는 주변 인프라도 같은 순서를 쓴다.
                 zIndex: BRAND_MARKER_Z_INDEX[brand] || 10,
               });
-              bindInfrastructureMarkerHover(marker, brand, place);
-              kakao.maps.event.addListener(marker, "click", function () {
-                if (place.place_url) window.open(place.place_url, "_blank");
-              });
+              bindInfrastructureMarkerEvents(marker, brand, place);
               subMarkers.push(marker);
               nearbyBrandMarkers[brand].push(marker);
             });
@@ -3002,6 +3051,7 @@
       loadDevelopmentOverlays();
 
       kakao.maps.event.addListener(map, "click", function () {
+        closeInfrastructureInfo();
         closeMapGuide();
         closeSiteMenu();
         if (!isPolygonClicked) {
