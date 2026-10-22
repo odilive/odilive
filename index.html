@@ -1447,6 +1447,7 @@
     ></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="infrastructure-search.js"></script>
+    <script src="development-overlay-data.js"></script>
 
     <script>
       var SUPABASE_URL = "https://luibrbeiykqyyeatornq.supabase.co";
@@ -2118,12 +2119,12 @@
       async function loadDevelopmentOverlays() {
         var { data, error } = await sb
           .from("development_overlays")
-          .select("neighborhood_id, name, polygon, label_lat, label_lng");
+          .select("id, neighborhood_id, name, polygon, label_lat, label_lng, created_at");
         if (error) {
           console.error("재개발 보조 경계 로딩 실패:", error);
           return;
         }
-        developmentOverlaysByNeighborhood = (data || []).reduce(function (
+        developmentOverlaysByNeighborhood = DevelopmentOverlayData.deduplicate(data).reduce(function (
           groups,
           item,
         ) {

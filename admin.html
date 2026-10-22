@@ -1250,6 +1250,7 @@
     ></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="infrastructure-search.js"></script>
+    <script src="development-overlay-data.js"></script>
 
     <script>
       // ── 관리자 인증 (Supabase Auth) ──
@@ -2075,69 +2076,97 @@
       async function loadDevelopmentOverlays(polygon) {
         polygon.myData.developmentOverlays =
           polygon.myData.developmentOverlays || [];
-        if (!polygon.myData.id) {
-          renderDevelopmentOverlays(polygon);
-          return;
+        if (!polygon.myData.id || polygon.myData.developmentOverlaysLoaded) {
+          if (activePolygon === polygon) renderDevelopmentOverlays(polygon);
+          return { error: null };
         }
-        var { data, error } = await sb
-          .from("development_overlays")
-          .select("id, name, polygon, label_lat, label_lng")
-          .eq("neighborhood_id", polygon.myData.id);
-        if (error) {
-          console.error("재개발 보조 경계 로딩 실패:", error);
-          renderDevelopmentOverlays(polygon);
-          return;
+        // 같은 동네를 빠르게 다시 열어도 조회는 한 번만 진행한다.
+        if (polygon.myData.developmentOverlaysLoading) {
+          return polygon.myData.developmentOverlaysLoading;
         }
-        if (activePolygon !== polygon) return;
-        var localNewOverlays = (
-          polygon.myData.developmentOverlays || []
-        ).filter(function (item) {
-          return !item.id;
-        });
-        polygon.myData.developmentOverlays = (data || []).concat(
-          localNewOverlays,
-        );
-        polygon.myData.developmentOverlaysLoaded = true;
-        renderDevelopmentOverlays(polygon);
+        var loading = (async function () {
+          try {
+            var { data, error } = await sb
+              .from("development_overlays")
+              .select("id, name, polygon, label_lat, label_lng, created_at")
+              .eq("neighborhood_id", polygon.myData.id);
+            if (error) throw error;
+            var localNewOverlays = polygon.myData.developmentOverlays.filter(function (item) {
+              return !item.id;
+            });
+            // 중복을 포함한 조회 당시의 ID를 기록해, 삭제 범위를 이미 읽은 행으로 제한한다.
+            polygon.myData.developmentOverlaySavedIds = (data || []).map(function (item) {
+              return item.id;
+            });
+            polygon.myData.developmentOverlays = DevelopmentOverlayData.deduplicate(
+              (data || []).concat(localNewOverlays),
+            );
+            polygon.myData.developmentOverlaysLoaded = true;
+            if (activePolygon === polygon) renderDevelopmentOverlays(polygon);
+            return { error: null };
+          } catch (error) {
+            console.error("재개발 보조 경계 로딩 실패:", error);
+            if (activePolygon === polygon) renderDevelopmentOverlays(polygon);
+            return { error: error };
+          }
+        })();
+        polygon.myData.developmentOverlaysLoading = loading;
+        try {
+          return await loading;
+        } finally {
+          if (polygon.myData.developmentOverlaysLoading === loading) {
+            polygon.myData.developmentOverlaysLoading = null;
+          }
+        }
       }
 
       async function saveDevelopmentOverlays(polygon) {
         if (!polygon.myData.id) return { error: null };
-        if (
-          !(polygon.myData.developmentOverlays || []).length &&
-          !polygon.myData.developmentOverlaysLoaded
-        ) {
-          return { error: null };
+        var loadResult = await loadDevelopmentOverlays(polygon);
+        if (loadResult.error) return loadResult;
+        var items = DevelopmentOverlayData.deduplicate(polygon.myData.developmentOverlays);
+        // 재시도에도 같은 ID를 사용해, 응답 유실 후 재저장해도 경계가 늘어나지 않게 한다.
+        items.forEach(function (item) {
+          if (!item.id) item.id = window.crypto.randomUUID();
+        });
+        polygon.myData.developmentOverlays = items;
+        var knownIds = polygon.myData.developmentOverlaySavedIds || [];
+        var rows = items.map(function (item) {
+          return {
+            id: item.id,
+            neighborhood_id: polygon.myData.id,
+            name: item.name || null,
+            polygon: item.polygon,
+            label_lat: item.label_lat != null ? item.label_lat : null,
+            label_lng: item.label_lng != null ? item.label_lng : null,
+          };
+        });
+        var savedRows = [];
+        if (rows.length) {
+          var result = await sb
+            .from("development_overlays")
+            .upsert(rows, { onConflict: "id" })
+            .select("id, name, polygon, label_lat, label_lng, created_at");
+          if (result.error) return { error: result.error };
+          savedRows = result.data || [];
+          if (savedRows.length !== rows.length) {
+            return { error: { message: "보조 경계 저장 결과를 확인하지 못했습니다. 다시 저장해주세요." } };
+          }
         }
-        var { error: deleteError } = await sb
-          .from("development_overlays")
-          .delete()
-          .eq("neighborhood_id", polygon.myData.id);
-        if (deleteError) return { error: deleteError };
-
-        var rows = (polygon.myData.developmentOverlays || []).map(
-          function (item) {
-            return {
-              neighborhood_id: polygon.myData.id,
-              name: item.name || null,
-              polygon: item.polygon,
-              label_lat: item.label_lat != null ? item.label_lat : null,
-              label_lng: item.label_lng != null ? item.label_lng : null,
-            };
-          },
-        );
-        if (!rows.length) {
-          polygon.myData.developmentOverlays = [];
-          return { error: null };
+        var retainedIds = new Set(rows.map(function (item) { return item.id; }));
+        var removedIds = knownIds.filter(function (id) { return !retainedIds.has(id); });
+        if (removedIds.length) {
+          // 저장 성공 후에 편집으로 지운 행과 완전히 중복된 행만 삭제한다.
+          var deletion = await sb
+            .from("development_overlays")
+            .delete()
+            .eq("neighborhood_id", polygon.myData.id)
+            .in("id", removedIds);
+          if (deletion.error) return { error: deletion.error };
         }
-        var { data: savedRows, error: insertError } = await sb
-          .from("development_overlays")
-          .insert(rows)
-          .select("id, name, polygon, label_lat, label_lng");
-        if (!insertError) {
-          polygon.myData.developmentOverlays = savedRows || [];
-        }
-        return { error: insertError };
+        polygon.myData.developmentOverlays = savedRows;
+        polygon.myData.developmentOverlaySavedIds = Array.from(retainedIds);
+        return { error: null };
       }
 
       function finishDrawing() {
@@ -2774,7 +2803,25 @@
         }
       }
 
+      var isNeighborhoodSaveRunning = false;
+
       async function saveData() {
+        if (isNeighborhoodSaveRunning) return;
+        isNeighborhoodSaveRunning = true;
+        var saveButton = document.querySelector('#button-group button[onclick="saveData()"]');
+        if (saveButton) saveButton.disabled = true;
+        try {
+          await saveNeighborhoodData();
+        } catch (error) {
+          console.error("동네 저장 실패:", error);
+          alert("저장 실패: " + error.message);
+        } finally {
+          isNeighborhoodSaveRunning = false;
+          if (saveButton) saveButton.disabled = false;
+        }
+      }
+
+      async function saveNeighborhoodData() {
         if (!activePolygon) return;
         // 저장 중 지도 클릭 등으로 사이드바가 닫혀도, 처음 저장을 누른 폴리곤을 끝까지 유지한다.
         // 공개 여부와 무관하게 관리자 지도에서는 항상 같은 폴리곤을 갱신해야 한다.
@@ -2930,7 +2977,7 @@
         polygon.setMap(map);
         applyNeighborhoodPolygonStyle(polygon);
         alert("성공적으로 저장되었습니다.");
-        closeSidebar();
+        if (activePolygon === polygon) closeSidebar();
       }
 
       async function deletePolygon() {
