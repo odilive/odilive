@@ -816,6 +816,8 @@
         font: inherit;
         font-size: 13px;
         text-align: left;
+        text-decoration: none;
+        cursor: pointer;
       }
       .story-channel-link.youtube {
         background: #fffafa;
@@ -1407,7 +1409,12 @@
       </button>
       <div id="site-panel-scroll"></div>
       <div id="story-channel-links" class="story-channel-links">
-        <button class="story-channel-link youtube" type="button" disabled>
+        <a
+          class="story-channel-link youtube"
+          href="https://www.youtube.com/@odilive_tv"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <span class="story-channel-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" role="img">
               <path
@@ -1419,9 +1426,8 @@
           </span>
           <span class="story-channel-copy">
             <strong>동네 영상</strong>
-            <span>준비 중</span>
           </span>
-        </button>
+        </a>
         <button class="story-channel-link blog" type="button" disabled>
           <span class="story-channel-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" role="img" aria-label="NAVER">
